@@ -15,14 +15,13 @@ CREATE TABLE `credid_vc_provider`.credential_type (
     `description` VARCHAR(255),
     PRIMARY KEY (id)
 );
-INSERT INTO `credential_type`(`id`, `name`) VALUES(0,'VerifiedCredential');
-INSERT INTO `credential_type`(`id`, `name`) VALUES(1,'EmailCredential');
-INSERT INTO `credential_type`(`id`, `name`) VALUES(2,'DateOfBirthCredential');
-INSERT INTO `credential_type`(`id`, `name`) VALUES(3,'CellPhoneCredential');
-INSERT INTO `credential_type`(`id`, `name`) VALUES(4,'NameCredential');
-INSERT INTO `credential_type`(`id`, `name`) VALUES(5,'EmploymentCredential');
-INSERT INTO `credential_type`(`id`, `name`) VALUES(6,'AddressCredential');
-INSERT INTO `credential_type`(`id`, `name`) VALUES(7,'SSNCredential');
+INSERT INTO `credential_type`(`id`, `name`) VALUES(0,'EmailCredential');
+INSERT INTO `credential_type`(`id`, `name`) VALUES(1,'DateOfBirthCredential');
+INSERT INTO `credential_type`(`id`, `name`) VALUES(2,'CellPhoneCredential');
+INSERT INTO `credential_type`(`id`, `name`) VALUES(3,'NameCredential');
+INSERT INTO `credential_type`(`id`, `name`) VALUES(4,'EmploymentCredential');
+INSERT INTO `credential_type`(`id`, `name`) VALUES(5,'AddressCredential');
+INSERT INTO `credential_type`(`id`, `name`) VALUES(6,'SSNCredential');
 
 
 CREATE TABLE `credid_vc_provider`.field (
@@ -49,28 +48,17 @@ CREATE TABLE `credid_vc_provider`.field_credential_type (
     CONSTRAINT fk_fieldCredentialType_field_id FOREIGN KEY (fieldId) REFERENCES `field`(id),
     CONSTRAINT fk_fieldCredentialType_credentialType_id FOREIGN KEY (credentialTypeId) REFERENCES `credential_type`(id)
 );
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(0,0);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(1,0);
+INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(0,3);
+INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(1,3);
 INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(2,0);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(3,0);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(4,0);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(5,0);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(6,0);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(7,0);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(8,0);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(9,0);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(10,0);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(0,4);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(1,4);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(2,1);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(3,2);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(4,3);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(5,6);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(6,6);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(7,6);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(8,6);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(9,6);
-INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(10,7);
+INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(3,1);
+INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(4,2);
+INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(5,5);
+INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(6,5);
+INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(7,5);
+INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(8,5);
+INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(9,5);
+INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(10,6);
 
 
 CREATE TABLE `credid_vc_provider`.user (
@@ -128,5 +116,33 @@ BEGIN
     SELECT `id` INTO _fieldId FROM field WHERE `name` = in_fieldName;
     INSERT INTO user_information(userId, fieldId, issueDate, expiryDate, `value`) 
         VALUES (in_userId, _fieldId, _now, DATE_ADD(_now, INTERVAL 1 YEAR), in_value);
+END $$
+
+DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_user_info`$$
+CREATE PROCEDURE `credid_vc_provider`.`pr_get_user_info`(
+    in_userId INTEGER
+)
+BEGIN
+	SELECT 
+        ui.fieldId,
+        f.`name`,
+        ui.`value`,
+        u.did,
+        ui.issueDate,
+        ui.expiryDate
+    FROM user_information ui
+    INNER JOIN user u ON u.id = ui.userId 
+    INNER JOIN field f ON f.id = ui.fieldId
+    WHERE u.id = in_userId;
+END $$
+
+DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_credential_types`$$
+CREATE PROCEDURE `credid_vc_provider`.`pr_get_credential_types`()
+BEGIN
+	SELECT 
+        fct.fieldId,
+        ct.`name`
+    FROM field_credential_type fct
+    INNER JOIN credential_type ct ON ct.id = fct.credentialTypeId;
 END $$
 DELIMITER ;

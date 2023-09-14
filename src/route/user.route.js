@@ -1,5 +1,5 @@
 import express from 'express';
-import { createUser } from '../controller/user.controller.js';
+import { createUser, getUser } from '../controller/user.controller.js';
 
 const userRoutes = express.Router();
 
@@ -80,5 +80,23 @@ const userRoutes = express.Router();
  *                          
  */
 userRoutes.route('/').post(createUser);
+
+/**
+ * @swagger
+ * /user/{id}:
+ *  get:
+ *      summary: returns a user and its PII in raw, masked and tokenised form
+ *      tags: [users]
+ *      parameters:
+ *      -   name: id
+ *          in: path
+ *          description: user id
+ *          required: true
+ *          type: number
+ *      responses:
+ *          200:
+ *              description: ok                
+ */
+userRoutes.route('/:id').get(getUser);
 
 export default userRoutes;

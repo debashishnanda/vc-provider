@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import Response from './domain/response.js'
 import logger from './util/logger.js'
-import HttpStatus from "./controller/user.controller.js";
+import HttpStatus from "./rest/HttpStatus.js";
 import userRoutes from "./route/user.route.js";
 import swaggerUI from "swagger-ui-express";
 import  swaggerJsDoc from "swagger-jsdoc";
