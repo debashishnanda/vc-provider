@@ -85,10 +85,8 @@ CREATE TABLE `credid_vc_provider`.pii_access_log (
     user_info_id INTEGER NOT NULL,
     pii_type ENUM ('raw', 'masked', 'tokenised'),
     created_when TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
-    created_by_id INTEGER NOT NULL,
     reason ENUM('Analytics and Insights', 'Security', 'Customer Service', 'Transaction and Payments', 'Communication', 'Legal and Regulatory Compliance', 'Membership and Subscriptions'),
-    CONSTRAINT fk_piiAccessLog_userInfo_id FOREIGN KEY (user_info_id) REFERENCES `user_information`(`id`),
-    CONSTRAINT fk_piiAccessLog_user_id FOREIGN KEY (created_by_id) REFERENCES `user`(`id`)
+    CONSTRAINT fk_piiAccessLog_userInfo_id FOREIGN KEY (user_info_id) REFERENCES `user_information`(`id`)
 );
 
 DELIMITER $$
@@ -124,6 +122,7 @@ CREATE PROCEDURE `credid_vc_provider`.`pr_get_user_info`(
 )
 BEGIN
 	SELECT 
+        ui.id,
         ui.fieldId,
         f.`name`,
         ui.`value`,
@@ -144,5 +143,67 @@ BEGIN
         ct.`name`
     FROM field_credential_type fct
     INNER JOIN credential_type ct ON ct.id = fct.credentialTypeId;
+END $$
+
+DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_store_pii_access`$$
+CREATE PROCEDURE `credid_vc_provider`.`pr_store_pii_access`(
+    in_userInfoId INTEGER,
+    in_piiType VARCHAR(255),
+    in_reason VARCHAR(255)
+)
+BEGIN
+	INSERT INTO `credid_vc_provider`.pii_access_log
+        (user_info_id, pii_type, reason)
+    VALUES 
+        (in_userInfoId, in_piiType, in_reason);
+END $$
+
+DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_pii_requests`$$
+CREATE PROCEDURE `credid_vc_provider`.`pr_get_pii_requests`(
+    in_userId INTEGER
+)
+BEGIN
+    DECLARE _rawCount INTEGER;
+    DECLARE _maskedCount INTEGER;
+    DECLARE _tokenisedCount INTEGER;
+    DECLARE _totalFields INTEGER;
+
+    SELECT count(*) INTO _totalFields FROM field;
+
+	SELECT count(*)/_totalFields INTO _rawCount
+    FROM credid_vc_provider.pii_access_log pal
+    INNER JOIN user_information ui on ui.id = pal.user_info_id
+    WHERE ui.userid = in_userId
+        AND pii_type = 'raw';
+    
+    SELECT count(*)/_totalFields INTO _maskedCount
+    FROM credid_vc_provider.pii_access_log pal
+    INNER JOIN user_information ui on ui.id = pal.user_info_id
+    WHERE ui.userid = in_userId
+        AND pii_type = 'masked';
+
+    SELECT count(*)/_totalFields INTO _tokenisedCount
+    FROM credid_vc_provider.pii_access_log pal
+    INNER JOIN user_information ui on ui.id = pal.user_info_id
+    WHERE ui.userid = in_userId
+        AND pii_type = 'tokenised';
+    
+    SELECT _rawCount AS rawCount,
+        _maskedCount AS maskedCount,
+        _tokenisedCount AS tokenisedCount;
+END $$
+
+DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_traffic_source`$$
+CREATE PROCEDURE `credid_vc_provider`.`pr_get_traffic_source`(
+    in_userId INTEGER
+)
+BEGIN
+	SELECT 
+        pal.reason,
+        count(*) AS count
+    FROM credid_vc_provider.pii_access_log pal
+    INNER JOIN user_information ui on ui.id = pal.user_info_id
+    WHERE ui.userid = in_userId
+    GROUP BY pal.reason;
 END $$
 DELIMITER ;

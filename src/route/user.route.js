@@ -93,6 +93,18 @@ userRoutes.route('/').post(createUser);
  *          description: user id
  *          required: true
  *          type: number
+ *      -   name: piiType
+ *          in: query
+ *          description: raw, masked, tokenised. Keep empty for all.
+ *          type: string
+ *          required: true
+ *          enum: [raw, masked, tokenised, all]
+ *      -   name: reason
+ *          in: query
+ *          description: reason to access the user PII
+ *          type: string
+ *          required: true
+ *          enum: ['Analytics and Insights', 'Security', 'Customer Service', 'Transaction and Payments', 'Communication', 'Legal and Regulatory Compliance', 'Membership and Subscriptions']
  *      responses:
  *          200:
  *              description: ok                

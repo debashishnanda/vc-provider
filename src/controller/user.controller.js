@@ -16,8 +16,10 @@ export const createUser = (req, res) => {
 
 export const getUser = (req, res) => {
   const id = req.params.id;
+  const piiType = req.query.piiType;
+  const reason = req.query.reason;
   
-  return getUserDAL(id).then((response) => {
+  return getUserDAL(id, piiType, reason).then((response) => {
     res.status(response.statusCode).send(response);
   })
   .catch((response) => {

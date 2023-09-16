@@ -4,13 +4,6 @@ import logger from "../util/logger.js";
 import HttpStatus from "../rest/HttpStatus.js";
 import MaskData from "maskdata";
 
-const maskCardOptions = {
-  maskWith: "*",
-  unmaskedStartDigits: 3,
-  unmaskedEndDigits: 2,
-  maskAtTheRate: false,
-};
-
 export const createUserDAL = (did, data) => {
   logger.info(`create user. did=${did}, data=${JSON.stringify(data)}`);
 
@@ -65,8 +58,8 @@ export const createUserDAL = (did, data) => {
   });
 };
 
-export const getUserDAL = (id) => {
-  logger.info(`get user. id=${id}`);
+export const getUserDAL = (id, piiType, reason) => {
+  logger.info(`get user. id=${id} reason=${reason}`);
 
   return new Promise((resolve, reject) => {
     database.query(
@@ -112,17 +105,36 @@ export const getUserDAL = (id) => {
                   const info = infos?.[0];
 
                   if (info) {
-                    credentialsSubject[info.name] = info.value;
-                    credentialsSubject["id"] = info.did;
-
-                    maskedSubject[info.name] = mask(info.value, credTypeName);
-                    maskedSubject["id"] = info.did;
-
-                    tokenisedSubject[info.name] = convertString(info.value);
-                    tokenisedSubject["id"] = info.did;
-
                     issuanceDate = info.issueDate;
                     expirationDate = info.expiryDate;
+                    switch(piiType){
+                      case 'raw':
+                        credentialsSubject[info.name] = info.value;
+                        credentialsSubject["id"] = info.did;
+                        saveAccessLog(info.id, "raw", reason);
+                        break;
+                      case 'masked':
+                        maskedSubject[info.name] = mask(info.value, credTypeName);
+                        maskedSubject["id"] = info.did;
+                        saveAccessLog(info.id, "masked", reason);
+                        break;
+                      case 'tokenised':
+                        tokenisedSubject[info.name] = convertString(info.value);
+                        tokenisedSubject["id"] = info.did;
+                        saveAccessLog(info.id, "tokenised", reason);
+                        break;
+                      default:
+                        credentialsSubject[info.name] = info.value;
+                        credentialsSubject["id"] = info.did;
+                        saveAccessLog(info.id, "raw", reason);
+                        maskedSubject[info.name] = mask(info.value, credTypeName);
+                        maskedSubject["id"] = info.did;
+                        saveAccessLog(info.id, "masked", reason);
+                        tokenisedSubject[info.name] = convertString(info.value);
+                        tokenisedSubject["id"] = info.did;
+                        saveAccessLog(info.id, "tokenised", reason);
+                        break;
+                    }
                   }
                 });
                 response.push({
@@ -141,7 +153,7 @@ export const getUserDAL = (id) => {
               });
 
               resolve(
-                new Response(HttpStatus.OK.code, HttpStatus.OK.status, response)
+                new Response(HttpStatus.OK.code, HttpStatus.OK.status, 'success', response)
               );
             }
           );
@@ -217,4 +229,12 @@ function convertString(inputString) {
   }
 
   return result;
+}
+
+const saveAccessLog = (userInfoId, piiType, reason) => {
+  database.query(`call credid_vc_provider.pr_store_pii_access(?,?,?)`,[userInfoId, piiType, reason], (error, results) => {
+    if(error) {
+      logger.info(`Error saving access log for userInfoId=${userInfoId}, piiType=${piiType}, reason=${reason} error= ${error}`);
+    }
+  })
 }

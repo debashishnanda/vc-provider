@@ -6,6 +6,7 @@ import Response from './domain/response.js'
 import logger from './util/logger.js'
 import HttpStatus from "./rest/HttpStatus.js";
 import userRoutes from "./route/user.route.js";
+import statsRoute from "./route/stats.route.js";
 import swaggerUI from "swagger-ui-express";
 import  swaggerJsDoc from "swagger-jsdoc";
 
@@ -36,6 +37,8 @@ app.use(express.json());
 
 app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(specs));
 app.use('/user', userRoutes);
+app.use('/stats', statsRoute);
+
 app.get('/',(req,res) => res.send(new Response(HttpStatus.OK.code, HttpStatus.OK.status, 'vc-provider v1- All good')));
 app.get('*',(req,res) => res.status(HttpStatus.NOT_FOUND.code.send(new Response(HttpStatus.NOT_FOUND.code, HttpStatus.NOT_FOUND.status, 'Route does not exist'))));
 
