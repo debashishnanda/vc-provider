@@ -206,4 +206,52 @@ BEGIN
     WHERE ui.userid = in_userId
     GROUP BY pal.reason;
 END $$
+
+DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_latest_pii_requests`$$
+CREATE PROCEDURE `credid_vc_provider`.`pr_get_latest_pii_requests`(
+    in_userId INTEGER
+)
+BEGIN
+	SELECT 
+        temp.name,
+        temp.pii_type,
+        temp.lastAccessedDate,
+        pal2.reason
+    FROM pii_access_log pal2 
+    INNER JOIN user_information ui2 on ui2.id = pal2.user_info_id 
+    INNER JOIN field f2 on f2.id = ui2.fieldId  
+    INNER JOIN 
+        (	
+        SELECT 
+            f.name,
+            pal.pii_type,
+            max(pal.created_when) AS lastAccessedDate
+        FROM pii_access_log pal
+        INNER JOIN user_information ui on ui.id = pal.user_info_id 
+        INNER JOIN field f on f.id = ui.fieldId 
+        WHERE ui.userId = in_userId
+        GROUP BY f.name, pal.pii_type 
+        ) temp ON temp.name = f2.name AND temp.pii_type = pal2.pii_type  AND temp.lastAccessedDate = pal2.created_when
+    WHERE ui2.userId = in_userId; 
+END $$ 
+
+DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_monthly_yearly_pii_request_count`$$
+CREATE PROCEDURE `credid_vc_provider`.`pr_get_monthly_yearly_pii_request_count`(
+    in_userId INTEGER,
+    in_startDate TIMESTAMP,
+    in_endDate TIMESTAMP
+)
+BEGIN
+	SELECT 
+        pal.pii_type,
+        YEAR(created_when) AS year,
+        MONTH(created_when) AS month,
+        count(*) AS count
+    FROM pii_access_log pal 
+    INNER JOIN user_information ui on ui.id = pal.user_info_id 
+    WHERE ui.userId = in_userId
+        AND (in_startDate IS NULL OR pal.created_when >= in_startDate)
+	    AND (in_endDate IS NULL OR pal.created_when <= in_endDate)
+    GROUP BY YEAR(pal.created_when), MONTH(pal.created_when), pal.pii_type;
+END $$ 
 DELIMITER ;

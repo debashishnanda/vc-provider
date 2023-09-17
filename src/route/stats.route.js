@@ -1,5 +1,10 @@
-import express from 'express';
-import { getPIIRequestCount, getTrafficSource } from '../controller/stats.controller.js';
+import express from "express";
+import {
+  getPIIRequestCount,
+  getTrafficSource,
+  getLatestPIIRequests,
+  getMonthlyYearlyPiiReqCounts
+} from "../controller/stats.controller.js";
 
 const statsRoutes = express.Router();
 
@@ -12,16 +17,16 @@ const statsRoutes = express.Router();
  *          properties:
  *              rawCount:
  *                  type: number
- *                  description: Number of times raw pii was accessed              
+ *                  description: Number of times raw pii was accessed
  *                  example: 23
  *              maskedCount:
  *                  type: number
- *                  description: Number of times masked pii was accessed              
+ *                  description: Number of times masked pii was accessed
  *                  example: 3
  *              tokenisedCount:
  *                  type: number
- *                  description: Number of times tokenised pii was accessed              
- *                  example: 273   
+ *                  description: Number of times tokenised pii was accessed
+ *                  example: 273
  */
 
 /**
@@ -41,8 +46,8 @@ const statsRoutes = express.Router();
  *              description: ok
  *              schema:
  *                  $ref: '#/components/schemas/piiCountResponse'
- */     
-statsRoutes.route('/piiRequests/:id').get(getPIIRequestCount);
+ */
+statsRoutes.route("/piiRequests/:id").get(getPIIRequestCount);
 
 /**
  * @swagger
@@ -61,7 +66,53 @@ statsRoutes.route('/piiRequests/:id').get(getPIIRequestCount);
  *              description: ok
  *              schema:
  *                  $ref: '#/components/schemas/piiCountResponse'
- */     
-statsRoutes.route('/trafficSource/:id').get(getTrafficSource);
+ */
+statsRoutes.route("/trafficSource/:id").get(getTrafficSource);
 
+/**
+ * @swagger
+ * /stats/latestPiiRequests/{id}:
+ *  get:
+ *      summary: returns the most recent request for a user
+ *      tags: [stats]
+ *      parameters:
+ *      -   name: id
+ *          in: path
+ *          description: user id
+ *          required: true
+ *          type: number
+ *      responses:
+ *          200:
+ *              description: ok
+ */
+statsRoutes.route("/latestPiiRequests/:id").get(getLatestPIIRequests);
+
+
+/**
+ * @swagger
+ * /stats/monthlyPiiRequests/{id}:
+ *  get:
+ *      summary: returns number of pii requests monthly for specified time
+ *      tags: [stats]
+ *      parameters:
+ *      -   name: id
+ *          in: path
+ *          description: user id
+ *          required: true
+ *          type: number
+ *      -   name: startDateTime
+ *          in: query
+ *          description: Starting date/time as ISO 8601 string. E.g. 2019-01-01T00:00:00
+ *          required: true
+ *          type: string
+ *      -   name: endDateTime
+ *          in: query
+ *          description: Ending date/time as ISO 8601 string. E.g. 2019-01-01T00:00:00
+ *          required: true
+ *          type: string
+ *      responses:
+ *          200:
+ *              description: ok
+ */
+statsRoutes.route("/monthlyPiiRequests/:id").get(getMonthlyYearlyPiiReqCounts);
 export default statsRoutes;
