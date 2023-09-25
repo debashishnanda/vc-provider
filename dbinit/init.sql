@@ -1,13 +1,37 @@
 CREATE DATABASE IF NOT EXISTS credid_vc_provider;
 
+
+
 USE credid_vc_provider;
 
+DROP TABLE IF EXISTS `credid_vc_provider`.`role_pii_type`;
 DROP TABLE IF EXISTS `credid_vc_provider`.pii_access_log;
 DROP TABLE IF EXISTS `credid_vc_provider`.user_information;
 DROP TABLE IF EXISTS `credid_vc_provider`.`user`;
 DROP TABLE IF EXISTS `credid_vc_provider`.field_credential_type;
 DROP TABLE IF EXISTS `credid_vc_provider`.`field`;
 DROP TABLE IF EXISTS `credid_vc_provider`.credential_type;
+DROP TABLE IF EXISTS `credid_vc_provider`.`role`;
+
+
+CREATE TABLE `credid_vc_provider`.`role` (
+    `id` INTEGER NOT NULL,
+    `name` VARCHAR(255) NOT NULL,
+    `description` VARCHAR(255),
+    PRIMARY KEY (id));
+    
+INSERT INTO `credid_vc_provider`.`role`(`id`, `name`) VALUES(0,'Security Officer');
+INSERT INTO `credid_vc_provider`.`role`(`id`, `name`) VALUES(1,'Data Analyst');
+INSERT INTO `credid_vc_provider`.`role`(`id`, `name`) VALUES(2,'Operational Officer');
+
+CREATE TABLE `credid_vc_provider`.`role_pii_type` (
+    `roleId` INTEGER NOT NULL,
+    `pii_type` ENUM ('raw', 'masked', 'tokenised'),
+    CONSTRAINT fk_role_pii_type_id FOREIGN KEY (roleId) REFERENCES `role`(`id`));
+    
+INSERT INTO `credid_vc_provider`.`role_pii_type`(`roleId`, `pii_type`) VALUES(0,'masked');
+INSERT INTO `credid_vc_provider`.`role_pii_type`(`roleId`, `pii_type`) VALUES(1,'raw');
+INSERT INTO `credid_vc_provider`.`role_pii_type`(`roleId`, `pii_type`) VALUES(2,'tokenised');
 
 CREATE TABLE `credid_vc_provider`.credential_type (
     `id` INTEGER NOT NULL,
@@ -62,22 +86,23 @@ INSERT INTO `field_credential_type`(`fieldId`, `credentialTypeId`) VALUES(10,6);
 
 
 CREATE TABLE `credid_vc_provider`.user (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
     `did` VARCHAR(255) NOT NULL UNIQUE,
+    `email` VARCHAR(255) UNIQUE DEFAULT NULL,
+    `cellPhone` VARCHAR(255) UNIQUE DEFAULT NULL,
     created_when TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
     modified_when TIMESTAMP,
-    PRIMARY KEY (id)
+    PRIMARY KEY (did)
 );
 
 CREATE TABLE `credid_vc_provider`.user_information (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
-    userId INTEGER NOT NULL,
+    userDid VARCHAR(255) NOT NULL,
     fieldId INTEGER NOT NULL,
     issueDate TIMESTAMP,
     expiryDate TIMESTAMP,
     `value` VARCHAR(255),
     PRIMARY KEY (id),
-    CONSTRAINT fk_userInfo_user_id FOREIGN KEY (userId) REFERENCES `user`(id),
+    CONSTRAINT fk_userInfo_user_did FOREIGN KEY (userDid) REFERENCES `user`(did),
     CONSTRAINT fk_userInfo_field_id FOREIGN KEY (fieldId) REFERENCES `field`(id)
 );
 
@@ -91,18 +116,39 @@ CREATE TABLE `credid_vc_provider`.pii_access_log (
 
 DELIMITER $$
 
-DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_create_user`$$
-CREATE PROCEDURE `credid_vc_provider`.`pr_create_user`(
-    in_did VARCHAR(255)
+DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_userByEmailOrPhone`$$
+CREATE PROCEDURE `credid_vc_provider`.`pr_get_userByEmailOrPhone`(
+    in_email VARCHAR(255),
+    in_cellPhone VARCHAR(255)
 )
 BEGIN
-    INSERT INTO user(`did`) VALUES(in_did);
-    SELECT `id` AS id FROM user where `id`=LAST_INSERT_ID();
+    SELECT did
+    FROM `credid_vc_provider`.`user`
+    WHERE email = in_email
+    	OR cellPhone = in_cellPhone
+    LIMIT 1; 
+END $$
+
+DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_create_user`$$
+CREATE PROCEDURE `credid_vc_provider`.`pr_create_user`(
+    in_did VARCHAR(255),
+    in_email VARCHAR(255),
+    in_cellPhone VARCHAR(255)
+)
+BEGIN
+	IF (
+		in_email IS NULL AND in_cellPhone IS NULL
+	) THEN 
+		SET @ERROR_MSG = 'pr_get_userByEmailOrPhone: Both email and phone cannot be null';
+		SIGNAL SQLSTATE '23000' SET MESSAGE_TEXT = @ERROR_MSG;
+	END IF;
+
+    INSERT INTO user(`did`, email, cellPhone) VALUES(in_did, in_email, in_cellPhone);
 END $$
 
 DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_add_user_info`$$
 CREATE PROCEDURE `credid_vc_provider`.`pr_add_user_info`(
-    in_userId INTEGER,
+    in_userDid VARCHAR(255),
     in_fieldName VARCHAR(255),
     in_value VARCHAR(255)
 )
@@ -112,13 +158,13 @@ BEGIN
     SET _now = CURRENT_TIMESTAMP;
 
     SELECT `id` INTO _fieldId FROM field WHERE `name` = in_fieldName;
-    INSERT INTO user_information(userId, fieldId, issueDate, expiryDate, `value`) 
-        VALUES (in_userId, _fieldId, _now, DATE_ADD(_now, INTERVAL 1 YEAR), in_value);
+    INSERT INTO user_information(userDid, fieldId, issueDate, expiryDate, `value`) 
+        VALUES (in_userDid, _fieldId, _now, DATE_ADD(_now, INTERVAL 1 YEAR), in_value);
 END $$
 
 DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_user_info`$$
 CREATE PROCEDURE `credid_vc_provider`.`pr_get_user_info`(
-    in_userId INTEGER
+    in_userDid VARCHAR(255)
 )
 BEGIN
 	SELECT 
@@ -130,9 +176,9 @@ BEGIN
         ui.issueDate,
         ui.expiryDate
     FROM user_information ui
-    INNER JOIN user u ON u.id = ui.userId 
+    INNER JOIN user u ON u.did = ui.userDid 
     INNER JOIN field f ON f.id = ui.fieldId
-    WHERE u.id = in_userId;
+    WHERE u.did = in_userDid;
 END $$
 
 DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_credential_types`$$
@@ -160,7 +206,7 @@ END $$
 
 DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_pii_requests`$$
 CREATE PROCEDURE `credid_vc_provider`.`pr_get_pii_requests`(
-    in_userId INTEGER
+    in_userDid VARCHAR(255)
 )
 BEGIN
     DECLARE _rawCount INTEGER;
@@ -173,19 +219,19 @@ BEGIN
 	SELECT count(*)/_totalFields INTO _rawCount
     FROM credid_vc_provider.pii_access_log pal
     INNER JOIN user_information ui on ui.id = pal.user_info_id
-    WHERE ui.userid = in_userId
+    WHERE ui.userid = in_userDid
         AND pii_type = 'raw';
     
     SELECT count(*)/_totalFields INTO _maskedCount
     FROM credid_vc_provider.pii_access_log pal
     INNER JOIN user_information ui on ui.id = pal.user_info_id
-    WHERE ui.userid = in_userId
+    WHERE ui.userid = in_userDid
         AND pii_type = 'masked';
 
     SELECT count(*)/_totalFields INTO _tokenisedCount
     FROM credid_vc_provider.pii_access_log pal
     INNER JOIN user_information ui on ui.id = pal.user_info_id
-    WHERE ui.userid = in_userId
+    WHERE ui.userid = in_userDid
         AND pii_type = 'tokenised';
     
     SELECT _rawCount AS rawCount,
@@ -195,7 +241,7 @@ END $$
 
 DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_traffic_source`$$
 CREATE PROCEDURE `credid_vc_provider`.`pr_get_traffic_source`(
-    in_userId INTEGER
+    in_userDid VARCHAR(255)
 )
 BEGIN
 	SELECT 
@@ -203,13 +249,13 @@ BEGIN
         count(*) AS count
     FROM credid_vc_provider.pii_access_log pal
     INNER JOIN user_information ui on ui.id = pal.user_info_id
-    WHERE ui.userid = in_userId
+    WHERE ui.userDid = in_userDid
     GROUP BY pal.reason;
 END $$
 
 DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_latest_pii_requests`$$
 CREATE PROCEDURE `credid_vc_provider`.`pr_get_latest_pii_requests`(
-    in_userId INTEGER
+    in_userDid VARCHAR(255)
 )
 BEGIN
 	SELECT 
@@ -229,15 +275,15 @@ BEGIN
         FROM pii_access_log pal
         INNER JOIN user_information ui on ui.id = pal.user_info_id 
         INNER JOIN field f on f.id = ui.fieldId 
-        WHERE ui.userId = in_userId
+        WHERE ui.userDid = in_userDid
         GROUP BY f.name, pal.pii_type 
         ) temp ON temp.name = f2.name AND temp.pii_type = pal2.pii_type  AND temp.lastAccessedDate = pal2.created_when
-    WHERE ui2.userId = in_userId; 
+    WHERE ui2.userDid = in_userDid; 
 END $$ 
 
 DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_monthly_yearly_pii_request_count`$$
 CREATE PROCEDURE `credid_vc_provider`.`pr_get_monthly_yearly_pii_request_count`(
-    in_userId INTEGER,
+    in_userDid VARCHAR(255),
     in_startDate TIMESTAMP,
     in_endDate TIMESTAMP
 )
@@ -249,7 +295,7 @@ BEGIN
         count(*) AS count
     FROM pii_access_log pal 
     INNER JOIN user_information ui on ui.id = pal.user_info_id 
-    WHERE ui.userId = in_userId
+    WHERE ui.userDid = in_userDid
         AND (in_startDate IS NULL OR pal.created_when >= in_startDate)
 	    AND (in_endDate IS NULL OR pal.created_when <= in_endDate)
     GROUP BY YEAR(pal.created_when), MONTH(pal.created_when), pal.pii_type;

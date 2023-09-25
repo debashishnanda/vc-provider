@@ -15,11 +15,11 @@ export const createUser = (req, res) => {
 
 
 export const getUser = (req, res) => {
-  const id = req.params.id;
+  const did = req.params.did;
   const piiType = req.query.piiType;
   const reason = req.query.reason;
   
-  return getUserDAL(id, piiType, reason).then((response) => {
+  return getUserDAL(did, piiType, reason).then((response) => {
     res.status(response.statusCode).send(response);
   })
   .catch((response) => {

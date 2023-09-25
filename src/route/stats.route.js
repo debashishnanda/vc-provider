@@ -31,61 +31,61 @@ const statsRoutes = express.Router();
 
 /**
  * @swagger
- * /stats/piiRequests/{id}:
+ * /stats/piiRequests/{did}:
  *  get:
  *      summary: returns the PII requests made for a user
  *      tags: [stats]
  *      parameters:
- *      -   name: id
+ *      -   name: did
  *          in: path
- *          description: user id
+ *          description: user did
  *          required: true
- *          type: number
+ *          type: string
  *      responses:
  *          200:
  *              description: ok
  *              schema:
  *                  $ref: '#/components/schemas/piiCountResponse'
  */
-statsRoutes.route("/piiRequests/:id").get(getPIIRequestCount);
+statsRoutes.route("/piiRequests/:did").get(getPIIRequestCount);
 
 /**
  * @swagger
- * /stats/trafficSource/{id}:
+ * /stats/trafficSource/{did}:
  *  get:
  *      summary: returns the traffic source grouped by category
  *      tags: [stats]
  *      parameters:
- *      -   name: id
+ *      -   name: did
  *          in: path
- *          description: user id
+ *          description: user did
  *          required: true
- *          type: number
+ *          type: string
  *      responses:
  *          200:
  *              description: ok
  *              schema:
  *                  $ref: '#/components/schemas/piiCountResponse'
  */
-statsRoutes.route("/trafficSource/:id").get(getTrafficSource);
+statsRoutes.route("/trafficSource/:did").get(getTrafficSource);
 
 /**
  * @swagger
- * /stats/latestPiiRequests/{id}:
+ * /stats/latestPiiRequests/{did}:
  *  get:
  *      summary: returns the most recent request for a user
  *      tags: [stats]
  *      parameters:
- *      -   name: id
+ *      -   name: did
  *          in: path
- *          description: user id
+ *          description: user did
  *          required: true
- *          type: number
+ *          type: string
  *      responses:
  *          200:
  *              description: ok
  */
-statsRoutes.route("/latestPiiRequests/:id").get(getLatestPIIRequests);
+statsRoutes.route("/latestPiiRequests/:did").get(getLatestPIIRequests);
 
 
 /**

@@ -88,11 +88,11 @@ userRoutes.route('/').post(createUser);
  *      summary: returns a user and its PII in raw, masked and tokenised form
  *      tags: [users]
  *      parameters:
- *      -   name: id
+ *      -   name: did
  *          in: path
- *          description: user id
+ *          description: user's did
  *          required: true
- *          type: number
+ *          type: string
  *      -   name: piiType
  *          in: query
  *          description: raw, masked, tokenised. Keep empty for all.

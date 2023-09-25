@@ -9,8 +9,8 @@ export const createUserDAL = (did, data) => {
 
   return new Promise((resolve, reject) => {
     database.query(
-      "call credid_vc_provider.pr_create_user(?)",
-      [did],
+      "call credid_vc_provider.pr_create_user(?,?,?)",
+      [did, data?.email, data?.cellPhone],
       (error, results) => {
         if (!results) {
           reject(
@@ -21,13 +21,12 @@ export const createUserDAL = (did, data) => {
             )
           );
         } else {
-          const userId = results?.[0]?.[0].id;
           let piiAdded = 0;
 
           Object.keys(data).forEach(async (key) => {
             await database.query(
               "call credid_vc_provider.pr_add_user_info(?,?,?)",
-              [userId, key, data[key]],
+              [did, key, data[key]],
               (error, results) => {
                 if (error) {
                   resolve(
@@ -58,20 +57,20 @@ export const createUserDAL = (did, data) => {
   });
 };
 
-export const getUserDAL = (id, piiType, reason) => {
-  logger.info(`get user. id=${id} reason=${reason}`);
+export const getUserDAL = (did, piiType, reason) => {
+  logger.info(`get user. did=${did} reason=${reason}`);
 
   return new Promise((resolve, reject) => {
     database.query(
       "call credid_vc_provider.pr_get_user_info(?)",
-      [id],
+      [did],
       (error, results) => {
         if (!results) {
           reject(
             new Response(
               HttpStatus.BAD_REQUEST.code,
               HttpStatus.BAD_REQUEST.status,
-              "User id does not exist"
+              "User did does not exist"
             )
           );
         } else {
@@ -81,8 +80,6 @@ export const getUserDAL = (id, piiType, reason) => {
             [],
             (error, results) => {
               const fieldCredTypes = results?.[0];
-              console.log("..fieldCredTypes", JSON.stringify(fieldCredTypes));
-              console.log("..user", JSON.stringify(userInfo));
 
               let credTypes = fieldCredTypes.map((cred) => cred.name);
               let uniqueCredNameTypes = [...new Set(credTypes)];
