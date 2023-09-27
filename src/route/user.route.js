@@ -1,5 +1,5 @@
 import express from 'express';
-import { createUser, getUser } from '../controller/user.controller.js';
+import { createUser, getUser, getDid } from '../controller/user.controller.js';
 
 const userRoutes = express.Router();
 
@@ -83,32 +83,59 @@ userRoutes.route('/').post(createUser);
 
 /**
  * @swagger
- * /user/{id}:
+ * /user:
  *  get:
  *      summary: returns a user and its PII in raw, masked and tokenised form
  *      tags: [users]
  *      parameters:
  *      -   name: did
- *          in: path
+ *          in: query
  *          description: user's did
  *          required: true
  *          type: string
- *      -   name: piiType
+ *      -   name: role
  *          in: query
- *          description: raw, masked, tokenised. Keep empty for all.
+ *          description: US Infosec Support, Marketing Team, Business Analytics
  *          type: string
  *          required: true
- *          enum: [raw, masked, tokenised, all]
+ *          enum: ['US Infosec Support', 'Marketing Team', 'Business Analytics']
  *      -   name: reason
  *          in: query
  *          description: reason to access the user PII
  *          type: string
  *          required: true
  *          enum: ['Analytics and Insights', 'Security', 'Customer Service', 'Transaction and Payments', 'Communication', 'Legal and Regulatory Compliance', 'Membership and Subscriptions']
+ *      -   name: vcType
+ *          in: query
+ *          description: EmailCredential, DateOfBirthCredential, CellPhoneCredential, NameCredential, EmploymentCredential, AddressCredential, SSNCredential
+ *          type: string
+ *          required: true
+ *          enum: ['EmailCredential','DateOfBirthCredential','CellPhoneCredential','NameCredential','EmploymentCredential','AddressCredential','SSNCredential']
  *      responses:
  *          200:
  *              description: ok                
  */
-userRoutes.route('/:id').get(getUser);
+userRoutes.route('/').get(getUser);
+
+/**
+ * @swagger
+ * /user/did:
+ *  get:
+ *      summary: returns a user's did 
+ *      tags: [users]
+ *      parameters:
+ *      -   name: phone
+ *          in: query
+ *          description: User's phone
+ *          type: string
+ *      -   name: email
+ *          in: query
+ *          description: User's email
+ *          type: string
+ *      responses:
+ *          200:
+ *              description: ok                
+ */
+userRoutes.route('/did').get(getDid);
 
 export default userRoutes;

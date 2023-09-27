@@ -6,7 +6,7 @@ import {
 } from "../dal/stats.js";
 
 export const getPIIRequestCount = (req, res) => {
-  const did = req.params.did;
+  const did = req.query.did;
 
   return getPIIRequestCountDAL(did)
     .then((response) => {
@@ -18,7 +18,7 @@ export const getPIIRequestCount = (req, res) => {
 };
 
 export const getTrafficSource = (req, res) => {
-  const did = req.params.did;
+  const did = req.query.did;
 
   return getTrafficSourceDal(did)
     .then((response) => {
@@ -30,7 +30,7 @@ export const getTrafficSource = (req, res) => {
 };
 
 export const getLatestPIIRequests = (req, res) => {
-  const did = req.params.did;
+  const did = req.query.did;
 
   return getLatestPIIRequestsDal(did)
     .then((response) => {
@@ -42,7 +42,7 @@ export const getLatestPIIRequests = (req, res) => {
 };
 
 export const getMonthlyYearlyPiiReqCounts = (req, res) => {
-  const did = req.params.did;
+  const did = req.query.did;
   const startDateTime = req.query.startDateTime;
   const endDateTime = req.query.endDateTime;
 

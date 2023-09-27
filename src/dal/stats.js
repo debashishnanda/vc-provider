@@ -120,6 +120,7 @@ export const getMonthlyYearlyPiiReqCountsDal = (
   startDateTime,
   endDateTime
 ) => {
+  logger.info(`get user. did=${userDid} startTime=${startDateTime} endTime=${endDateTime}`);
   return new Promise((reject, resolve) => {
     database.query(
       "call credid_vc_provider.pr_get_monthly_yearly_pii_request_count(?,?,?)",

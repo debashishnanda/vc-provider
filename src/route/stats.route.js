@@ -31,13 +31,13 @@ const statsRoutes = express.Router();
 
 /**
  * @swagger
- * /stats/piiRequests/{did}:
+ * /stats/piiRequests:
  *  get:
  *      summary: returns the PII requests made for a user
  *      tags: [stats]
  *      parameters:
  *      -   name: did
- *          in: path
+ *          in: query
  *          description: user did
  *          required: true
  *          type: string
@@ -47,17 +47,17 @@ const statsRoutes = express.Router();
  *              schema:
  *                  $ref: '#/components/schemas/piiCountResponse'
  */
-statsRoutes.route("/piiRequests/:did").get(getPIIRequestCount);
+statsRoutes.route("/piiRequests").get(getPIIRequestCount);
 
 /**
  * @swagger
- * /stats/trafficSource/{did}:
+ * /stats/trafficSource:
  *  get:
  *      summary: returns the traffic source grouped by category
  *      tags: [stats]
  *      parameters:
  *      -   name: did
- *          in: path
+ *          in: query
  *          description: user did
  *          required: true
  *          type: string
@@ -67,17 +67,17 @@ statsRoutes.route("/piiRequests/:did").get(getPIIRequestCount);
  *              schema:
  *                  $ref: '#/components/schemas/piiCountResponse'
  */
-statsRoutes.route("/trafficSource/:did").get(getTrafficSource);
+statsRoutes.route("/trafficSource").get(getTrafficSource);
 
 /**
  * @swagger
- * /stats/latestPiiRequests/{did}:
+ * /stats/latestPiiRequests:
  *  get:
  *      summary: returns the most recent request for a user
  *      tags: [stats]
  *      parameters:
  *      -   name: did
- *          in: path
+ *          in: query
  *          description: user did
  *          required: true
  *          type: string
@@ -85,34 +85,32 @@ statsRoutes.route("/trafficSource/:did").get(getTrafficSource);
  *          200:
  *              description: ok
  */
-statsRoutes.route("/latestPiiRequests/:did").get(getLatestPIIRequests);
+statsRoutes.route("/latestPiiRequests").get(getLatestPIIRequests);
 
 
 /**
  * @swagger
- * /stats/monthlyPiiRequests/{id}:
+ * /stats/monthlyPiiRequests:
  *  get:
  *      summary: returns number of pii requests monthly for specified time
  *      tags: [stats]
  *      parameters:
- *      -   name: id
- *          in: path
- *          description: user id
+ *      -   name: did
+ *          in: query
+ *          description: user did
  *          required: true
- *          type: number
+ *          type: string
  *      -   name: startDateTime
  *          in: query
- *          description: Starting date/time as ISO 8601 string. E.g. 2019-01-01T00:00:00
- *          required: true
+ *          description: UTC Starting date/time as ISO 8601 string. E.g. 2019-01-01T00:00:00
  *          type: string
  *      -   name: endDateTime
  *          in: query
- *          description: Ending date/time as ISO 8601 string. E.g. 2019-01-01T00:00:00
- *          required: true
+ *          description: UTC Ending date/time as ISO 8601 string. E.g. 2019-01-01T00:00:00
  *          type: string
  *      responses:
  *          200:
  *              description: ok
  */
-statsRoutes.route("/monthlyPiiRequests/:id").get(getMonthlyYearlyPiiReqCounts);
+statsRoutes.route("/monthlyPiiRequests").get(getMonthlyYearlyPiiReqCounts);
 export default statsRoutes;

@@ -1,7 +1,5 @@
 CREATE DATABASE IF NOT EXISTS credid_vc_provider;
 
-
-
 USE credid_vc_provider;
 
 DROP TABLE IF EXISTS `credid_vc_provider`.`role_pii_type`;
@@ -20,9 +18,9 @@ CREATE TABLE `credid_vc_provider`.`role` (
     `description` VARCHAR(255),
     PRIMARY KEY (id));
     
-INSERT INTO `credid_vc_provider`.`role`(`id`, `name`) VALUES(0,'Security Officer');
-INSERT INTO `credid_vc_provider`.`role`(`id`, `name`) VALUES(1,'Data Analyst');
-INSERT INTO `credid_vc_provider`.`role`(`id`, `name`) VALUES(2,'Operational Officer');
+INSERT INTO `credid_vc_provider`.`role`(`id`, `name`) VALUES(0,'US Infosec Support');
+INSERT INTO `credid_vc_provider`.`role`(`id`, `name`) VALUES(1,'Marketing Team');
+INSERT INTO `credid_vc_provider`.`role`(`id`, `name`) VALUES(2,'Business Analytics');
 
 CREATE TABLE `credid_vc_provider`.`role_pii_type` (
     `roleId` INTEGER NOT NULL,
@@ -139,7 +137,7 @@ BEGIN
 	IF (
 		in_email IS NULL AND in_cellPhone IS NULL
 	) THEN 
-		SET @ERROR_MSG = 'pr_get_userByEmailOrPhone: Both email and phone cannot be null';
+		SET @ERROR_MSG = 'pr_create_user: Both email and phone cannot be null';
 		SIGNAL SQLSTATE '23000' SET MESSAGE_TEXT = @ERROR_MSG;
 	END IF;
 
@@ -162,9 +160,22 @@ BEGIN
         VALUES (in_userDid, _fieldId, _now, DATE_ADD(_now, INTERVAL 1 YEAR), in_value);
 END $$
 
+DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_piiType_for_role`$$
+CREATE PROCEDURE `credid_vc_provider`.`pr_get_piiType_for_role`(
+    in_role VARCHAR(255)
+)
+BEGIN
+	SELECT 
+        rpt.pii_type
+    FROM role_pii_type rpt 
+    INNER JOIN `role` r ON r.id = rpt.roleId
+   	WHERE r.name = in_role;
+END $$
+
 DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_user_info`$$
 CREATE PROCEDURE `credid_vc_provider`.`pr_get_user_info`(
-    in_userDid VARCHAR(255)
+    in_userDid VARCHAR(255),
+    in_vcType VARCHAR(255)
 )
 BEGIN
 	SELECT 
@@ -178,8 +189,10 @@ BEGIN
     FROM user_information ui
     INNER JOIN user u ON u.did = ui.userDid 
     INNER JOIN field f ON f.id = ui.fieldId
-    WHERE u.did = in_userDid;
-END $$
+    INNER JOIN field_credential_type fct ON fct.fieldId = f.id
+    INNER JOIN credential_type ct ON ct.id = fct.credentialTypeId
+    WHERE u.did = in_userDid
+   		AND ct.name = in_vcType;
 
 DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_credential_types`$$
 CREATE PROCEDURE `credid_vc_provider`.`pr_get_credential_types`()
@@ -198,10 +211,13 @@ CREATE PROCEDURE `credid_vc_provider`.`pr_store_pii_access`(
     in_reason VARCHAR(255)
 )
 BEGIN
+    DECLARE _now TIMESTAMP;
+    SET _now = CURRENT_TIMESTAMP;
+
 	INSERT INTO `credid_vc_provider`.pii_access_log
-        (user_info_id, pii_type, reason)
+        (user_info_id, pii_type, created_when, reason)
     VALUES 
-        (in_userInfoId, in_piiType, in_reason);
+        (in_userInfoId, in_piiType, _now,  in_reason);
 END $$
 
 DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_pii_requests`$$
@@ -219,19 +235,19 @@ BEGIN
 	SELECT count(*)/_totalFields INTO _rawCount
     FROM credid_vc_provider.pii_access_log pal
     INNER JOIN user_information ui on ui.id = pal.user_info_id
-    WHERE ui.userid = in_userDid
+    WHERE ui.userDid = in_userDid
         AND pii_type = 'raw';
     
     SELECT count(*)/_totalFields INTO _maskedCount
     FROM credid_vc_provider.pii_access_log pal
     INNER JOIN user_information ui on ui.id = pal.user_info_id
-    WHERE ui.userid = in_userDid
+    WHERE ui.userDid = in_userDid
         AND pii_type = 'masked';
 
     SELECT count(*)/_totalFields INTO _tokenisedCount
     FROM credid_vc_provider.pii_access_log pal
     INNER JOIN user_information ui on ui.id = pal.user_info_id
-    WHERE ui.userid = in_userDid
+    WHERE ui.userDid = in_userDid
         AND pii_type = 'tokenised';
     
     SELECT _rawCount AS rawCount,
@@ -288,6 +304,7 @@ CREATE PROCEDURE `credid_vc_provider`.`pr_get_monthly_yearly_pii_request_count`(
     in_endDate TIMESTAMP
 )
 BEGIN
+   
 	SELECT 
         pal.pii_type,
         YEAR(created_when) AS year,
