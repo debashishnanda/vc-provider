@@ -116,6 +116,12 @@ export const getUserDAL = (did, role, vcType, reason) => {
                       value = convertString(info.value);
                       saveAccessLog(info.id, "tokenised", reason);
                       break;
+                    case "redacted":
+                      value = null
+                      saveAccessLog(info.id, "redacted", reason);
+                      break;
+                    default:
+                      break;
                   }
 
                   if (credentialsSubject[pii_type]) {

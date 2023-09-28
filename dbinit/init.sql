@@ -10,26 +10,37 @@ DROP TABLE IF EXISTS `credid_vc_provider`.field_credential_type;
 DROP TABLE IF EXISTS `credid_vc_provider`.`field`;
 DROP TABLE IF EXISTS `credid_vc_provider`.credential_type;
 DROP TABLE IF EXISTS `credid_vc_provider`.`role`;
+DROP TABLE IF EXISTS `credid_vc_provider`.`database_version`;
 
+CREATE TABLE `credid_vc_provider`.`database_version` (
+    `id` INTEGER PRIMARY KEY AUTO_INCREMENT,
+    `version` INTEGER NOT NULL,
+    `description` VARCHAR(255)
+);
+INSERT INTO `credid_vc_provider`.`database_version`(`version`, `description`) VALUES(1,'Initialise database');
 
 CREATE TABLE `credid_vc_provider`.`role` (
     `id` INTEGER NOT NULL,
     `name` VARCHAR(255) NOT NULL,
     `description` VARCHAR(255),
-    PRIMARY KEY (id));
+    PRIMARY KEY (id)
+);
     
 INSERT INTO `credid_vc_provider`.`role`(`id`, `name`) VALUES(0,'US Infosec Support');
 INSERT INTO `credid_vc_provider`.`role`(`id`, `name`) VALUES(1,'Marketing Team');
 INSERT INTO `credid_vc_provider`.`role`(`id`, `name`) VALUES(2,'Business Analytics');
+INSERT INTO `credid_vc_provider`.`role`(`id`, `name`) VALUES(3,'Consultants');
+
 
 CREATE TABLE `credid_vc_provider`.`role_pii_type` (
     `roleId` INTEGER NOT NULL,
-    `pii_type` ENUM ('raw', 'masked', 'tokenised'),
+    `pii_type` ENUM ('raw', 'masked', 'tokenised', 'redacted'),
     CONSTRAINT fk_role_pii_type_id FOREIGN KEY (roleId) REFERENCES `role`(`id`));
     
 INSERT INTO `credid_vc_provider`.`role_pii_type`(`roleId`, `pii_type`) VALUES(0,'masked');
 INSERT INTO `credid_vc_provider`.`role_pii_type`(`roleId`, `pii_type`) VALUES(1,'raw');
 INSERT INTO `credid_vc_provider`.`role_pii_type`(`roleId`, `pii_type`) VALUES(2,'tokenised');
+INSERT INTO `credid_vc_provider`.`role_pii_type`(`roleId`, `pii_type`) VALUES(3,'redacted');
 
 CREATE TABLE `credid_vc_provider`.credential_type (
     `id` INTEGER NOT NULL,
@@ -106,7 +117,7 @@ CREATE TABLE `credid_vc_provider`.user_information (
 
 CREATE TABLE `credid_vc_provider`.pii_access_log (
     user_info_id INTEGER NOT NULL,
-    pii_type ENUM ('raw', 'masked', 'tokenised'),
+    pii_type ENUM ('raw', 'masked', 'tokenised', 'redacted'),
     created_when TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
     reason ENUM('Analytics and Insights', 'Security', 'Customer Service', 'Transaction and Payments', 'Communication', 'Legal and Regulatory Compliance', 'Membership and Subscriptions'),
     CONSTRAINT fk_piiAccessLog_userInfo_id FOREIGN KEY (user_info_id) REFERENCES `user_information`(`id`)
@@ -193,6 +204,8 @@ BEGIN
     INNER JOIN credential_type ct ON ct.id = fct.credentialTypeId
     WHERE u.did = in_userDid
    		AND ct.name = in_vcType;
+END $$
+
 
 DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_credential_types`$$
 CREATE PROCEDURE `credid_vc_provider`.`pr_get_credential_types`()
@@ -228,31 +241,36 @@ BEGIN
     DECLARE _rawCount INTEGER;
     DECLARE _maskedCount INTEGER;
     DECLARE _tokenisedCount INTEGER;
-    DECLARE _totalFields INTEGER;
+    DECLARE _redactedCount INTEGER;
 
-    SELECT count(*) INTO _totalFields FROM field;
-
-	SELECT count(*)/_totalFields INTO _rawCount
+	SELECT count(*) INTO _rawCount
     FROM credid_vc_provider.pii_access_log pal
     INNER JOIN user_information ui on ui.id = pal.user_info_id
     WHERE ui.userDid = in_userDid
         AND pii_type = 'raw';
     
-    SELECT count(*)/_totalFields INTO _maskedCount
+    SELECT count(*) INTO _maskedCount
     FROM credid_vc_provider.pii_access_log pal
     INNER JOIN user_information ui on ui.id = pal.user_info_id
     WHERE ui.userDid = in_userDid
         AND pii_type = 'masked';
 
-    SELECT count(*)/_totalFields INTO _tokenisedCount
+    SELECT count(*) INTO _tokenisedCount
     FROM credid_vc_provider.pii_access_log pal
     INNER JOIN user_information ui on ui.id = pal.user_info_id
     WHERE ui.userDid = in_userDid
         AND pii_type = 'tokenised';
     
+    SELECT count(*) INTO _redactedCount
+    FROM credid_vc_provider.pii_access_log pal
+    INNER JOIN user_information ui on ui.id = pal.user_info_id
+    WHERE ui.userDid = in_userDid
+        AND pii_type = 'redacted';
+    
     SELECT _rawCount AS rawCount,
         _maskedCount AS maskedCount,
-        _tokenisedCount AS tokenisedCount;
+        _tokenisedCount AS tokenisedCount,
+        _redactedCount AS redactedCount;
 END $$
 
 DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_traffic_source`$$

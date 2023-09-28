@@ -85,7 +85,7 @@ userRoutes.route('/').post(createUser);
  * @swagger
  * /user:
  *  get:
- *      summary: returns a user and its PII in raw, masked and tokenised form
+ *      summary: returns a user and its PII in raw, masked, reducted or tokenised form
  *      tags: [users]
  *      parameters:
  *      -   name: did
@@ -95,13 +95,13 @@ userRoutes.route('/').post(createUser);
  *          type: string
  *      -   name: role
  *          in: query
- *          description: US Infosec Support, Marketing Team, Business Analytics
+ *          description: US Infosec Support, Marketing Team, Business Analytics, Consultants
  *          type: string
  *          required: true
- *          enum: ['US Infosec Support', 'Marketing Team', 'Business Analytics']
+ *          enum: ['US Infosec Support', 'Marketing Team', 'Business Analytics', 'Consultants']
  *      -   name: reason
  *          in: query
- *          description: reason to access the user PII
+ *          description: reason to access the user PII. Analytics and Insights, Security, Customer Service, Transaction and Payments, Communication, Legal and Regulatory Compliance, Membership and Subscriptions
  *          type: string
  *          required: true
  *          enum: ['Analytics and Insights', 'Security', 'Customer Service', 'Transaction and Payments', 'Communication', 'Legal and Regulatory Compliance', 'Membership and Subscriptions']
