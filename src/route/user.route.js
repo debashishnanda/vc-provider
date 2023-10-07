@@ -1,5 +1,5 @@
 import express from 'express';
-import { createUser, getUser, getDid } from '../controller/user.controller.js';
+import { createUser, getUser, getDid, getPiiList } from '../controller/user.controller.js';
 
 const userRoutes = express.Router();
 
@@ -137,5 +137,22 @@ userRoutes.route('/').get(getUser);
  *              description: ok                
  */
 userRoutes.route('/did').get(getDid);
+
+/**
+ * @swagger
+ * /user/piiList:
+ *  get:
+ *      summary: returns a user's pii lists
+ *      tags: [users]
+ *      parameters:
+ *      -   name: did
+ *          in: query
+ *          description: User's did
+ *          type: string
+ *      responses:
+ *          200:
+ *              description: ok                
+ */
+userRoutes.route('/piiList').get(getPiiList);
 
 export default userRoutes;

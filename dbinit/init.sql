@@ -45,35 +45,37 @@ INSERT INTO `credid_vc_provider`.`role_pii_type`(`roleId`, `pii_type`) VALUES(3,
 CREATE TABLE `credid_vc_provider`.credential_type (
     `id` INTEGER NOT NULL,
     `name` VARCHAR(255) NOT NULL,
+    `displayName` VARCHAR(255) NOT NULL,
     `description` VARCHAR(255),
     PRIMARY KEY (id)
 );
-INSERT INTO `credential_type`(`id`, `name`) VALUES(0,'EmailCredential');
-INSERT INTO `credential_type`(`id`, `name`) VALUES(1,'DateOfBirthCredential');
-INSERT INTO `credential_type`(`id`, `name`) VALUES(2,'CellPhoneCredential');
-INSERT INTO `credential_type`(`id`, `name`) VALUES(3,'NameCredential');
-INSERT INTO `credential_type`(`id`, `name`) VALUES(4,'EmploymentCredential');
-INSERT INTO `credential_type`(`id`, `name`) VALUES(5,'AddressCredential');
-INSERT INTO `credential_type`(`id`, `name`) VALUES(6,'SSNCredential');
+INSERT INTO `credential_type`(`id`, `name`, displayName) VALUES(0,'EmailCredential','EmailCredential');
+INSERT INTO `credential_type`(`id`, `name`, displayName) VALUES(1,'DateOfBirthCredential', 'DateOfBirthCredential');
+INSERT INTO `credential_type`(`id`, `name`, displayName) VALUES(2,'CellPhoneCredential', 'CellPhoneCredential');
+INSERT INTO `credential_type`(`id`, `name`, displayName) VALUES(3,'NameCredential', 'NameCredential');
+INSERT INTO `credential_type`(`id`, `name`, displayName) VALUES(4,'EmploymentCredential', 'EmploymentCredential');
+INSERT INTO `credential_type`(`id`, `name`, displayName) VALUES(5,'AddressCredential', 'AddressCredential');
+INSERT INTO `credential_type`(`id`, `name`, displayName) VALUES(6,'SSNCredential', 'SSNCredential');
 
 
 CREATE TABLE `credid_vc_provider`.field (
     `id` INTEGER NOT NULL,
     `name` VARCHAR(255) NOT NULL,
+    `displayName` VARCHAR(255) NOT NULL,
     `description` VARCHAR(255),
     PRIMARY KEY (id)
 );
-INSERT INTO `field`(`id`,`name`) VALUES(0, 'firstName');
-INSERT INTO `field`(`id`,`name`) VALUES(1, 'lastName');
-INSERT INTO `field`(`id`,`name`) VALUES(2, 'email');
-INSERT INTO `field`(`id`,`name`) VALUES(3, 'dob');
-INSERT INTO `field`(`id`,`name`) VALUES(4, 'cellPhone');
-INSERT INTO `field`(`id`,`name`) VALUES(5, 'street');
-INSERT INTO `field`(`id`,`name`) VALUES(6, 'apt');
-INSERT INTO `field`(`id`,`name`) VALUES(7, 'city');
-INSERT INTO `field`(`id`,`name`) VALUES(8, 'state');
-INSERT INTO `field`(`id`,`name`) VALUES(9, 'zip');
-INSERT INTO `field`(`id`,`name`) VALUES(10, 'ssn');
+INSERT INTO `field`(`id`,`name`, displayName) VALUES(0, 'firstName', 'First Name');
+INSERT INTO `field`(`id`,`name`, displayName) VALUES(1, 'lastName', 'Last Name');
+INSERT INTO `field`(`id`,`name`, displayName) VALUES(2, 'email', 'Email');
+INSERT INTO `field`(`id`,`name`, displayName) VALUES(3, 'dob', 'Date Of Birth');
+INSERT INTO `field`(`id`,`name`, displayName) VALUES(4, 'cellPhone', 'Cell Phone');
+INSERT INTO `field`(`id`,`name`, displayName) VALUES(5, 'street', 'Street');
+INSERT INTO `field`(`id`,`name`, displayName) VALUES(6, 'apt', 'Apartment');
+INSERT INTO `field`(`id`,`name`, displayName) VALUES(7, 'city', 'City');
+INSERT INTO `field`(`id`,`name`, displayName) VALUES(8, 'state', 'State');
+INSERT INTO `field`(`id`,`name`, displayName) VALUES(9, 'zip', 'Zip');
+INSERT INTO `field`(`id`,`name`, displayName) VALUES(10, 'ssn', 'SSN');
 
 CREATE TABLE `credid_vc_provider`.field_credential_type (
     `fieldId` INTEGER NOT NULL,
@@ -335,4 +337,28 @@ BEGIN
 	    AND (in_endDate IS NULL OR pal.created_when <= in_endDate)
     GROUP BY YEAR(pal.created_when), MONTH(pal.created_when), pal.pii_type;
 END $$ 
+
+DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_pii_list_of_user`$$
+CREATE PROCEDURE `credid_vc_provider`.`pr_get_pii_list_of_user`(
+    in_userDid VARCHAR(255)
+)
+BEGIN
+	SELECT 
+        ct.displayName AS credentialType,
+        f.displayName AS piiName
+    FROM user_information ui
+    INNER JOIN field f ON ui.fieldId = f.id
+    INNER JOIN field_credential_type fct ON fct.fieldId = f.id
+    INNER JOIN credential_type ct ON ct.id = fct.credentialTypeId
+    WHERE ui.userDid = in_userDid;
+END $$ 
+
+DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_total_secured_pii`$$
+CREATE PROCEDURE `credid_vc_provider`.`pr_get_total_secured_pii`(
+)
+BEGIN
+	SELECT count(*) AS count
+    FROM field;
+END $$
+
 DELIMITER ;

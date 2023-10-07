@@ -134,7 +134,7 @@ export const getMonthlyYearlyPiiReqCountsDal = (
             new Response(
               HttpStatus.BAD_REQUEST.code,
               HttpStatus.BAD_REQUEST.status,
-              "User id does not exists."
+              "User did does not exists."
             )
           );
         } else {
@@ -144,6 +144,39 @@ export const getMonthlyYearlyPiiReqCountsDal = (
               HttpStatus.OK.status,
               "success",
               results?.[0] || []
+            )
+          );
+        }
+      }
+    );
+  });
+};
+
+export const getTotalSecuredPIIDal = () => {
+  logger.info(`get total secured pii.`);
+  return new Promise((reject, resolve) => {
+    database.query(
+      "call credid_vc_provider.pr_get_total_secured_pii()",
+      [],
+      (error, results) => {
+        if (error) {
+          logger.info(
+            `Error while getting total secured pii. error=${error} `
+          );
+          reject(
+            new Response(
+              HttpStatus.BAD_REQUEST.code,
+              HttpStatus.BAD_REQUEST.status,
+              error
+            )
+          );
+        } else {
+          resolve(
+            new Response(
+              HttpStatus.OK.code,
+              HttpStatus.OK.status,
+              "success",
+              results?.[0]?.[0] || []
             )
           );
         }

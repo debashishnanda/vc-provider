@@ -1,4 +1,4 @@
-import { createUserDAL, getUserDAL, getDidDAL } from "../dal/user.js";
+import { createUserDAL, getUserDAL, getDidDAL, getPiiListDAL } from "../dal/user.js";
 
 export const createUser = (req, res) => {
   const did = req.query.did;
@@ -40,3 +40,16 @@ export const getDid = (req, res) => {
     res.status(response.statusCode).send(response);
   });
 }
+
+export const getPiiList = (req, res) => {
+  const did = req.query.did;
+  
+  return getPiiListDAL(did).then((response) => {
+    res.status(response.statusCode).send(response);
+  })
+  .catch((response) => {
+    res.status(response.statusCode).send(response);
+  });
+}
+
+

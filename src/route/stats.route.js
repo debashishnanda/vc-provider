@@ -3,7 +3,8 @@ import {
   getPIIRequestCount,
   getTrafficSource,
   getLatestPIIRequests,
-  getMonthlyYearlyPiiReqCounts
+  getMonthlyYearlyPiiReqCounts,
+  getTotalSecuredPII
 } from "../controller/stats.controller.js";
 
 const statsRoutes = express.Router();
@@ -117,4 +118,16 @@ statsRoutes.route("/latestPiiRequests").get(getLatestPIIRequests);
  *              description: ok
  */
 statsRoutes.route("/monthlyPiiRequests").get(getMonthlyYearlyPiiReqCounts);
+
+/**
+ * @swagger
+ * /stats/totalSecuredPII:
+ *  get:
+ *      summary: returns total number of PIIs
+ *      tags: [stats]
+ *      responses:
+ *          200:
+ *              description: ok
+ */
+statsRoutes.route("/totalSecuredPII").get(getTotalSecuredPII);
 export default statsRoutes;

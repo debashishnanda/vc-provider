@@ -17,7 +17,7 @@ export const createUserDAL = (did, data) => {
             new Response(
               HttpStatus.BAD_REQUEST.code,
               HttpStatus.BAD_REQUEST.status,
-              "DID already exists."
+              "DID, email or phone already exists."
             )
           );
         } else {
@@ -29,6 +29,7 @@ export const createUserDAL = (did, data) => {
               [did, key, data[key]],
               (error, results) => {
                 if (error) {
+                  console.log("Error in adding user ", error)
                   resolve(
                     new Response(
                       HttpStatus.INTERNAL_SERVER_ERROR.code,
@@ -138,7 +139,7 @@ export const getUserDAL = (did, role, vcType, reason) => {
                     "https://www.w3.org/2018/credentials/v1",
                     "https://www.schema.org",
                   ],
-                  type: ["VerifiedCredential", vcType],
+                  type: ["VerifiableCredential", vcType],
                   issuer: "https://example.com/issuer",
                   issuanceDate,
                   expirationDate,
@@ -193,6 +194,60 @@ export const getDidDAL = (phone, email) => {
               HttpStatus.OK.status,
               "success",
               results?.[0]?.[0]
+            )
+          );
+        }
+      }
+    );
+  });
+};
+
+export const getPiiListDAL = (did) => {
+  logger.info(`get PII list of user with [did]=${did}`);
+  return new Promise((resolve, reject) => {
+    if (!did) {
+      reject(
+        new Response(
+          HttpStatus.BAD_REQUEST.code,
+          HttpStatus.BAD_REQUEST.status,
+          "User'd did cannot be empty"
+        )
+      );
+    }
+    database.query(
+      "call credid_vc_provider.pr_get_pii_list_of_user(?)",
+      [did],
+      (error, results) => {
+        if (!results) {
+          reject(
+            new Response(
+              HttpStatus.BAD_REQUEST.code,
+              HttpStatus.BAD_REQUEST.status,
+              "User's did doesn't exists"
+            )
+          );
+        } else {
+          const piiList = results?.[0];
+          const output = [];
+
+          piiList.forEach(pii => {
+            output.push({
+              credential: "VerifiableCredential",
+              data: {
+                credential: pii.credentialType,
+                data: {
+                  piiName: pii.piiName
+                }
+              }
+            })
+          } );
+
+          resolve(
+            new Response(
+              HttpStatus.OK.code,
+              HttpStatus.OK.status,
+              "success",
+              output
             )
           );
         }

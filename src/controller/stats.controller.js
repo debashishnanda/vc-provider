@@ -2,7 +2,8 @@ import {
   getPIIRequestCountDAL,
   getTrafficSourceDal,
   getLatestPIIRequestsDal,
-  getMonthlyYearlyPiiReqCountsDal
+  getMonthlyYearlyPiiReqCountsDal,
+  getTotalSecuredPIIDal
 } from "../dal/stats.js";
 
 export const getPIIRequestCount = (req, res) => {
@@ -47,6 +48,16 @@ export const getMonthlyYearlyPiiReqCounts = (req, res) => {
   const endDateTime = req.query.endDateTime;
 
   return getMonthlyYearlyPiiReqCountsDal(did, startDateTime, endDateTime)
+    .then((response) => {
+      res.status(response.statusCode).send(response);
+    })
+    .catch((response) => {
+      res.status(response.statusCode).send(response);
+    });
+};
+
+export const getTotalSecuredPII = (req, res) => {
+  return getTotalSecuredPIIDal()
     .then((response) => {
       res.status(response.statusCode).send(response);
     })
