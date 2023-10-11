@@ -14,60 +14,126 @@ const userRoutes = express.Router();
  *                  type: string
  *                  description: first name 
  *                  example: Aman
+ *              middleName:
+ *                  type: string
+ *                  description: middle name 
+ *                  example: Singh
  *              lastName:
  *                  type: string
  *                  description: last name 
- *                  example: Singh
- *              email:
+ *                  example: Bhandari
+ *              domain:
  *                  type: string
- *                  description: email
+ *                  description: Email Domain
+ *                  example: "@credid.xyz"
+ *              localPart:
+ *                  type: string
+ *                  description: Local part in the email
+ *                  example: aman.singh
+ *              emailAddress:
+ *                  type: string
+ *                  description: Email Address
  *                  example: aman.singh@credid.xyz
- *              dob:
+ *              dayOfBirth:
  *                  type: string
- *                  description: Date Of Birth 
+ *                  description: Day Of Birth. Format DD
+ *                  example: 18
+ *              monthOfBirth:
+ *                  type: string
+ *                  description: Month Of Birth. Format MM
+ *                  example: 11
+ *              yearOfBirth:
+ *                  type: string
+ *                  description: Year Of Birth. Format YYYY
+ *                  example: 1991
+ *              completeDateOfBirth:
+ *                  type: string
+ *                  description: Date Of Birth. Format YYYY/MM/DD
  *                  example: 1991/11/18
- *              cellPhone:
+ *              countryCode:
  *                  type: string
  *                  description: Mobile number
- *                  example: 8795456874
- *              street:
+ *                  example: +1
+ *              areaCode:
  *                  type: string
- *                  description: Stret number 
+ *                  description: Mobile number
+ *                  example: 902
+ *              mobileNumber:
+ *                  type: string
+ *                  description: Mobile number
+ *                  example: 9895671
+ *              msisdn:
+ *                  type: string
+ *                  description: Mobile number
+ *                  example: +19029895671
+ *              streetAddress:
+ *                  type: string
+ *                  description: Street number 
  *                  example: 1790
- *              apt:
+ *              aptSuiteNumber:
  *                  type: string
  *                  description: Apartment Number
  *                  example: 908
- *              city:
+ *              addressLocality:
  *                  type: string
  *                  description: City 
- *                  example: Toronto
- *              state:
+ *                  example: North York
+ *              addressRegion:
  *                  type: string
  *                  description: State/Province 
- *                  example: Ontario     
- *              zip:
+ *                  example: Ontario  
+ *              addressCountry:
+ *                  type: string
+ *                  description: Country
+ *                  example: Canada  
+ *              postalCode:
  *                  type: string
  *                  description: ZipCode/ Pin Code
  *                  example: M4A2T3  
- *              ssn:
+ *              socialSecurityNumber:
  *                  type: string
- *                  description: Social Security Number 
- *                  example: 27825353782            
+ *                  description: Social Security Number. Format AAA-GG-SSSSS
+ *                  example: 123-45-6789
+ *              last4digits:
+ *                  type: string
+ *                  description: Last four digits of Social Security Number. Format SSSSS
+ *                  example: 6789
+ *              employerName:
+ *                  type: string
+ *                  description: Name of the employer 
+ *                  example: Credid  
+ *              jobTitle:
+ *                  type: string
+ *                  description: Job title
+ *                  example: Software Engineer
+ *              employmentStartDate:
+ *                  type: string
+ *                  description: Start date of the employment YYYY-MM-DD
+ *                  example: 2017-05-08
+ *              employmentEndDate:
+ *                  type: string
+ *                  description: End Date of the employment YYYY-MM-DD
+ *                  example: 2021-09-30
  */
 
 /**
  * @swagger
- * /user:
+ * /user/{tenantId}:
  *  post:
  *      summary: Add a user and its PII
  *      tags: [users]
  *      parameters:
+ *      -   name: tenantId
+ *          in: path
+ *          description: Tenant Id
+ *          required: true
+ *          type: number
  *      -   name: did
  *          in: query
  *          description: Decentralized Identity
  *          required: true
- *          type: string        
+ *          type: string     
+ *          example: did:example:aman   
  *      requestBody:
  *          required: true
  *          content:
@@ -79,15 +145,20 @@ const userRoutes = express.Router();
  *              description: ok
  *                          
  */
-userRoutes.route('/').post(createUser);
+userRoutes.route('/:tenantId').post(createUser);
 
 /**
  * @swagger
- * /user:
+ * /user/{tenantId}:
  *  get:
- *      summary: returns a user and its PII in raw, masked, reducted or tokenised form
+ *      summary: returns a user and its PII in raw, masked, redacted or tokenized form
  *      tags: [users]
  *      parameters:
+ *      -   name: tenantId
+ *          in: path
+ *          description: tenant id
+ *          required: true
+ *          type: string
  *      -   name: did
  *          in: query
  *          description: user's did
@@ -107,23 +178,27 @@ userRoutes.route('/').post(createUser);
  *          enum: ['Analytics and Insights', 'Security', 'Customer Service', 'Transaction and Payments', 'Communication', 'Legal and Regulatory Compliance', 'Membership and Subscriptions']
  *      -   name: vcType
  *          in: query
- *          description: EmailCredential, DateOfBirthCredential, CellPhoneCredential, NameCredential, EmploymentCredential, AddressCredential, SSNCredential
+ *          description: EmailCredential, DateOfBirthCredential, MobileNumberCredential, NameCredential, EmploymentCredential, PostalAddressCredential, SocialSecurityNumberCredential
  *          type: string
  *          required: true
- *          enum: ['EmailCredential','DateOfBirthCredential','CellPhoneCredential','NameCredential','EmploymentCredential','AddressCredential','SSNCredential']
+ *          enum: ['EmailCredential','DateOfBirthCredential','MobileNumberCredential','NameCredential','EmploymentCredential','PostalAddressCredential','SocialSecurityNumberCredential']
  *      responses:
  *          200:
  *              description: ok                
  */
-userRoutes.route('/').get(getUser);
+userRoutes.route('/:tenantId').get(getUser);
 
 /**
  * @swagger
- * /user/did:
+ * /user/did/{tenantId}:
  *  get:
  *      summary: returns a user's did 
  *      tags: [users]
  *      parameters:
+ *      -   name: tenantId
+ *          in: path
+ *          description: tenant Id
+ *          type: number
  *      -   name: phone
  *          in: query
  *          description: User's phone
@@ -136,15 +211,19 @@ userRoutes.route('/').get(getUser);
  *          200:
  *              description: ok                
  */
-userRoutes.route('/did').get(getDid);
+userRoutes.route('/did/:tenantId').get(getDid);
 
 /**
  * @swagger
- * /user/piiList:
+ * /user/piiList/{tenantId}:
  *  get:
  *      summary: returns a user's pii lists
  *      tags: [users]
  *      parameters:
+ *      -   name: tenantId
+ *          in: path
+ *          description: Tenant Id
+ *          type: number
  *      -   name: did
  *          in: query
  *          description: User's did
@@ -153,6 +232,6 @@ userRoutes.route('/did').get(getDid);
  *          200:
  *              description: ok                
  */
-userRoutes.route('/piiList').get(getPiiList);
+userRoutes.route('/piiList/:tenantId').get(getPiiList);
 
 export default userRoutes;

@@ -4,13 +4,22 @@ import logger from "../util/logger.js";
 import HttpStatus from "../rest/HttpStatus.js";
 import MaskData from "maskdata";
 
-export const createUserDAL = (did, data) => {
-  logger.info(`create user. did=${did}, data=${JSON.stringify(data)}`);
+const RAW = "raw",
+  MASKED = "masked",
+  TOKENIZED = "tokenized",
+  REDACTED = "redacted";
+
+export const createUserDAL = (tenantId, did, data) => {
+  logger.info(
+    `create user. tenantId=${tenantId}, did=${did}, data=${JSON.stringify(
+      data
+    )}`
+  );
 
   return new Promise((resolve, reject) => {
     database.query(
-      "call credid_vc_provider.pr_create_user(?,?,?)",
-      [did, data?.email, data?.cellPhone],
+      "call credid_vc_provider.pr_create_user(?,?,?,?)",
+      [tenantId, did, data?.emailAddress, data?.msisdn],
       (error, results) => {
         if (!results) {
           reject(
@@ -26,10 +35,10 @@ export const createUserDAL = (did, data) => {
           Object.keys(data).forEach(async (key) => {
             await database.query(
               "call credid_vc_provider.pr_add_user_info(?,?,?)",
-              [did, key, data[key]],
+              [results?.[0]?.[0].userId, key, data[key]],
               (error, results) => {
                 if (error) {
-                  console.log("Error in adding user ", error)
+                  console.log("Error in adding user ", error);
                   resolve(
                     new Response(
                       HttpStatus.INTERNAL_SERVER_ERROR.code,
@@ -58,101 +67,120 @@ export const createUserDAL = (did, data) => {
   });
 };
 
-export const getUserDAL = (did, role, vcType, reason) => {
+export const getUserDAL = (tenantId, did, role, vcType, reason) => {
   logger.info(
-    `get user. did=${did} role=${role} vcType=${vcType} reason=${reason}`
+    `get user. tenantId= ${tenantId} did=${did} role=${role} vcType=${vcType} reason=${reason}`
   );
 
   return new Promise((resolve, reject) => {
     database.query(
-      "call credid_vc_provider.pr_get_user_info(?,?)",
-      [did, vcType],
+      "call credid_vc_provider.pr_get_user_info_for_vc(?,?,?)",
+      [tenantId, did, vcType],
       (error, results) => {
         if (!results) {
+          console.log(`Error while getting user info for a vc type ${error}`);
           reject(
             new Response(
               HttpStatus.BAD_REQUEST.code,
               HttpStatus.BAD_REQUEST.status,
-              "User did does not exist"
+              "User does not exist"
             )
           );
         } else {
           const userInfo = results?.[0];
 
           database.query(
-            "call credid_vc_provider.pr_get_piiType_for_role(?)",
-            [role],
+            "call credid_vc_provider.pr_get_parent_vc_type(?)",
+            [vcType],
             (error, results) => {
               if (!results) {
                 reject(
                   new Response(
                     HttpStatus.BAD_REQUEST.code,
                     HttpStatus.BAD_REQUEST.status,
-                    "Role does not exist"
+                    "Verified credential not found"
                   )
                 );
               } else {
-                const pii_type = results?.[0]?.[0]?.pii_type;
-                const response = [];
+                const vcList = results?.[0];
 
-                const credentialsSubject = {};
+                database.query(
+                  "call credid_vc_provider.pr_get_piiType_for_role(?)",
+                  [role],
+                  (error, results) => {
+                    if (!results) {
+                      reject(
+                        new Response(
+                          HttpStatus.BAD_REQUEST.code,
+                          HttpStatus.BAD_REQUEST.status,
+                          "Role does not exist"
+                        )
+                      );
+                    } else {
+                      const pii_type = results?.[0]?.[0]?.pii_type;
+                      const response = [];
 
-                let issuanceDate, expirationDate;
+                      const credentialsSubject = {};
 
-                userInfo.forEach((info) => {
-                  issuanceDate = info.issueDate;
-                  expirationDate = info.expiryDate;
-                  credentialsSubject.id = info.did;
-                  let value;
-                  switch (pii_type) {
-                    case "raw":
-                      value = info.value;
-                      saveAccessLog(info.id, "raw", reason);
-                      break;
-                    case "masked":
-                      value = mask(info.value, vcType);
-                      saveAccessLog(info.id, "masked", reason);
-                      break;
-                    case "tokenised":
-                      value = convertString(info.value);
-                      saveAccessLog(info.id, "tokenised", reason);
-                      break;
-                    case "redacted":
-                      value = null
-                      saveAccessLog(info.id, "redacted", reason);
-                      break;
-                    default:
-                      break;
+                      let issuanceDate, expirationDate;
+
+                      userInfo.forEach((info) => {
+                        issuanceDate = info.issueDate;
+                        expirationDate = info.expiryDate;
+                        credentialsSubject.id = info.did;
+                        let value;
+                        switch (pii_type) {
+                          case RAW:
+                            value = info.value;
+                            saveAccessLog(info.id, RAW, reason);
+                            break;
+                          case MASKED:
+                            value = mask(info.value, vcType);
+                            saveAccessLog(info.id, MASKED, reason);
+                            break;
+                          case TOKENIZED:
+                            value = convertString(info.value);
+                            saveAccessLog(info.id, TOKENIZED, reason);
+                            break;
+                          case REDACTED:
+                            value = null;
+                            saveAccessLog(info.id, REDACTED, reason);
+                            break;
+                          default:
+                            break;
+                        }
+
+                        if (credentialsSubject[pii_type]) {
+                          credentialsSubject[pii_type][info.name] = value;
+                        } else {
+                          credentialsSubject[pii_type] = {
+                            [info.name]: value,
+                          };
+                        }
+                      });
+
+                      response.push({
+                        context: [
+                          "https://www.w3.org/2018/credentials/v1",
+                          "https://www.schema.org",
+                        ],
+                        type: vcList.map((vc) => vc.name),
+                        issuer: "https://example.com/issuer",
+                        issuanceDate,
+                        expirationDate,
+                        credentialsSubject,
+                      });
+
+                      resolve(
+                        new Response(
+                          HttpStatus.OK.code,
+                          HttpStatus.OK.status,
+                          "success",
+                          response
+                        )
+                      );
+                    }
                   }
-
-                  if (credentialsSubject[pii_type]) {
-                    credentialsSubject[pii_type][info.name] = value;
-                  } else {
-                    credentialsSubject[pii_type] = {
-                      [info.name]: value,
-                    };
-                  }
-                });
-
-                response.push({
-                  context: [
-                    "https://www.w3.org/2018/credentials/v1",
-                    "https://www.schema.org",
-                  ],
-                  type: ["VerifiableCredential", vcType],
-                  issuer: "https://example.com/issuer",
-                  issuanceDate,
-                  expirationDate,
-                  credentialsSubject,
-                });
-
-                resolve(
-                  new Response(
-                    HttpStatus.OK.code,
-                    HttpStatus.OK.status,
-                    "success",
-                    response
-                  )
                 );
               }
             }
@@ -163,8 +191,8 @@ export const getUserDAL = (did, role, vcType, reason) => {
   });
 };
 
-export const getDidDAL = (phone, email) => {
-  logger.info(`get Did. phone=${phone} email=${email}`);
+export const getDidDAL = (tenantId, phone, email) => {
+  logger.info(`get Did. tenantId= ${tenantId} phone=${phone} email=${email}`);
   return new Promise((resolve, reject) => {
     if (!email && !phone) {
       reject(
@@ -176,8 +204,8 @@ export const getDidDAL = (phone, email) => {
       );
     }
     database.query(
-      "call credid_vc_provider.pr_get_userByEmailOrPhone(?,?)",
-      [email, phone],
+      "call credid_vc_provider.pr_get_userByEmailOrPhone(?,?,?)",
+      [tenantId, email, phone],
       (error, results) => {
         if (!results) {
           reject(
@@ -202,8 +230,9 @@ export const getDidDAL = (phone, email) => {
   });
 };
 
-export const getPiiListDAL = (did) => {
-  logger.info(`get PII list of user with [did]=${did}`);
+export const getPiiListDAL = (tenantId, did) => {
+  logger.info(`get PII list of user with [tenantId]=${tenantId} [did]=${did}`);
+
   return new Promise((resolve, reject) => {
     if (!did) {
       reject(
@@ -215,40 +244,91 @@ export const getPiiListDAL = (did) => {
       );
     }
     database.query(
-      "call credid_vc_provider.pr_get_pii_list_of_user(?)",
-      [did],
+      "call credid_vc_provider.pr_get_user_info(?,?)",
+      [tenantId, did],
       (error, results) => {
-        if (!results) {
+        if (error) {
+          logger.info(error);
           reject(
             new Response(
               HttpStatus.BAD_REQUEST.code,
               HttpStatus.BAD_REQUEST.status,
-              "User's did doesn't exists"
+              "User's did does not exist"
             )
           );
         } else {
-          const piiList = results?.[0];
-          const output = [];
+          const userInfo = results?.[0];
+          const response = [];
+          const vcList = database.query(
+            "select id, name, parentId from credential_type",
+            [],
+            (error, results) => {
+              if (error) {
+                logger.info(error);
+                reject(
+                  new Response(
+                    HttpStatus.BAD_REQUEST.code,
+                    HttpStatus.BAD_REQUEST.status,
+                    "credential does not exist"
+                  )
+                );
+              } else {
+                 const vcList = results;
 
-          piiList.forEach(pii => {
-            output.push({
-              credential: "VerifiableCredential",
-              data: {
-                credential: pii.credentialType,
-                data: {
-                  piiName: pii.piiName
-                }
+                 userInfo.forEach(info => {
+                  const vcs = getVcHierarchy(info.credentialType, vcList);
+                  const credentialsSubject = {};
+                  let issuanceDate, expirationDate;
+                  const vc_credential = response.filter((vc) =>
+                    vc?.type?.includes(info.credentialType)
+                  ); //pick the vc for credential type
+      
+                  if (vc_credential.length === 0) {
+                    //vc not added yet
+                    issuanceDate = info.issueDate;
+                    expirationDate = info.expiryDate;
+                    credentialsSubject.id = info.did;
+                    credentialsSubject[RAW] = { [info.name]: info.value };
+                    credentialsSubject[MASKED] = {
+                      [info.name]: mask(info.value, info.credentialType),
+                    };
+                    credentialsSubject[TOKENIZED] = {
+                      [info.name]: convertString(info.value),
+                    };
+                    credentialsSubject[REDACTED] = { [info.name]: null };
+                    response.push({
+                      context: [
+                        "https://www.w3.org/2018/credentials/v1",
+                        "https://www.schema.org",
+                      ],
+                      type: vcs,
+                      issuer: "https://example.com/issuer",
+                      issuanceDate,
+                      expirationDate,
+                      credentialsSubject,
+                    });
+                  } else {
+                    vc_credential[0].credentialsSubject[RAW][info.name] = info.value;
+                    vc_credential[0].credentialsSubject[MASKED][info.name] = mask(
+                      info.value,
+                      info.credentialType
+                    );
+                    vc_credential[0].credentialsSubject[TOKENIZED][info.name] =
+                      convertString(info.value);
+                    vc_credential[0].credentialsSubject[REDACTED][info.name] = null;
+                  }
+                });
+      
+                resolve(
+                  new Response(
+                    HttpStatus.OK.code,
+                    HttpStatus.OK.status,
+                    "success",
+                    response
+                  )
+                );
               }
-            })
-          } );
-
-          resolve(
-            new Response(
-              HttpStatus.OK.code,
-              HttpStatus.OK.status,
-              "success",
-              output
-            )
+            }
           );
         }
       }
@@ -259,23 +339,23 @@ export const getPiiListDAL = (did) => {
 const mask = (input, type) => {
   type = type.toLowerCase();
 
-  if (type.includes("email")) {
+  if (type.includes("email") && input.includes('@')) {
     return MaskData.maskEmail2(input, {
       maskWith: "*",
       unmaskedStartCharactersBeforeAt: 3,
       unmaskedEndCharactersAfterAt: 2,
       maskAtTheRate: false,
     });
-  } else if (type.includes("cell")) {
+  } else if (type.includes("mobile")) {
     return MaskData.maskPhone(input, {
       maskWith: "*",
       unmaskedStartDigits: 0,
-      unmaskedEndDigits: 4,
+      unmaskedEndDigits: 1,
     });
-  } else if (type.includes("dob")) {
+  } else if (type.includes("date")) {
     return MaskData.maskCard(input, {
       maskWith: "*",
-      unmaskedStartDigits: 2,
+      unmaskedStartDigits: 0,
       unmaskedEndDigits: 1,
     });
   } else {
@@ -336,3 +416,16 @@ const saveAccessLog = (userInfoId, piiType, reason) => {
     }
   );
 };
+
+const getVcHierarchy = (name, vcList) => {
+  const list = [];
+  let current = vcList.filter(vc => vc.name === name)?.[0];
+
+  while(current.parentId != 0) {
+    list.unshift(current.name);
+    current = vcList.filter(vc => vc.id === current.parentId)?.[0];
+  }
+  list.unshift(current.name);
+
+  return list;
+}

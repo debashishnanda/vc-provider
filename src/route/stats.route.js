@@ -24,13 +24,13 @@ const statsRoutes = express.Router();
  *                  type: number
  *                  description: Number of times masked pii was accessed
  *                  example: 3
- *              tokenisedCount:
+ *              tokenizedCount:
  *                  type: number
- *                  description: Number of times tokenised pii was accessed
+ *                  description: Number of times tokenized pii was accessed
  *                  example: 273
  *              redactedCount:
  *                  type: number
- *                  description: Number of times tokenised pii was accessed
+ *                  description: Number of times redacted pii was accessed
  *                  example: 209
  */
 
