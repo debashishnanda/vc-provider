@@ -372,6 +372,7 @@ END $$
 
 DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_pii_requests`$$
 CREATE PROCEDURE `credid_vc_provider`.`pr_get_pii_requests`(
+    in_tenantId INTEGER,
     in_userDid VARCHAR(255)
 )
 BEGIN
@@ -383,25 +384,33 @@ BEGIN
 	SELECT count(*) INTO _rawCount
     FROM credid_vc_provider.pii_access_log pal
     INNER JOIN user_information ui on ui.id = pal.user_info_id
-    WHERE ui.userDid = in_userDid
+    INNER JOIN user u ON u.id = ui.userId
+    WHERE u.did = in_userDid
+        AND u.tenantId = in_tenantId
         AND pii_type = 'raw';
     
     SELECT count(*) INTO _maskedCount
     FROM credid_vc_provider.pii_access_log pal
     INNER JOIN user_information ui on ui.id = pal.user_info_id
-    WHERE ui.userDid = in_userDid
+    INNER JOIN user u ON u.id = ui.userId
+    WHERE u.did = in_userDid
+        AND u.tenantId = in_tenantId
         AND pii_type = 'masked';
 
     SELECT count(*) INTO _tokenizedCount
     FROM credid_vc_provider.pii_access_log pal
     INNER JOIN user_information ui on ui.id = pal.user_info_id
-    WHERE ui.userDid = in_userDid
+    INNER JOIN user u ON u.id = ui.userId
+    WHERE u.did = in_userDid
+        AND u.tenantId = in_tenantId
         AND pii_type = 'tokenized';
     
     SELECT count(*) INTO _redactedCount
     FROM credid_vc_provider.pii_access_log pal
     INNER JOIN user_information ui on ui.id = pal.user_info_id
-    WHERE ui.userDid = in_userDid
+    INNER JOIN user u ON u.id = ui.userId
+    WHERE u.did = in_userDid
+        AND u.tenantId = in_tenantId
         AND pii_type = 'redacted';
     
     SELECT _rawCount AS rawCount,
@@ -412,6 +421,7 @@ END $$
 
 DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_traffic_source`$$
 CREATE PROCEDURE `credid_vc_provider`.`pr_get_traffic_source`(
+    in_tenantId INTEGER,
     in_userDid VARCHAR(255)
 )
 BEGIN
@@ -420,12 +430,15 @@ BEGIN
         count(*) AS count
     FROM credid_vc_provider.pii_access_log pal
     INNER JOIN user_information ui on ui.id = pal.user_info_id
-    WHERE ui.userDid = in_userDid
+    INNER JOIN user u ON u.id = ui.userId
+    WHERE u.did = in_userDid
+        AND u.tenantId = in_tenantId
     GROUP BY pal.reason;
 END $$
 
 DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_latest_pii_requests`$$
 CREATE PROCEDURE `credid_vc_provider`.`pr_get_latest_pii_requests`(
+    in_tenantId INTEGER,
     in_userDid VARCHAR(255)
 )
 BEGIN
@@ -437,6 +450,7 @@ BEGIN
     FROM pii_access_log pal2 
     INNER JOIN user_information ui2 on ui2.id = pal2.user_info_id 
     INNER JOIN field f2 on f2.id = ui2.fieldId  
+    INNER JOIN user u ON u.id = ui2.userId
     INNER JOIN 
         (	
         SELECT 
@@ -446,28 +460,33 @@ BEGIN
         FROM pii_access_log pal
         INNER JOIN user_information ui on ui.id = pal.user_info_id 
         INNER JOIN field f on f.id = ui.fieldId 
-        WHERE ui.userDid = in_userDid
+        INNER JOIN user u ON u.id = ui.userId
+        WHERE u.did = in_userDid
+            AND u.tenantId = in_tenantId
         GROUP BY f.name, pal.pii_type 
         ) temp ON temp.name = f2.name AND temp.pii_type = pal2.pii_type  AND temp.lastAccessedDate = pal2.created_when
-    WHERE ui2.userDid = in_userDid; 
+    WHERE u.did = in_userDid
+        AND u.tenantId = in_tenantId; 
 END $$ 
 
 DROP PROCEDURE IF EXISTS `credid_vc_provider`.`pr_get_monthly_yearly_pii_request_count`$$
 CREATE PROCEDURE `credid_vc_provider`.`pr_get_monthly_yearly_pii_request_count`(
+    in_tenantId INTEGER,
     in_userDid VARCHAR(255),
     in_startDate TIMESTAMP,
     in_endDate TIMESTAMP
 )
 BEGIN
-   
 	SELECT 
         pal.pii_type,
-        YEAR(created_when) AS year,
-        MONTH(created_when) AS month,
+        YEAR(pal.created_when) AS year,
+        MONTH(pal.created_when) AS month,
         count(*) AS count
     FROM pii_access_log pal 
     INNER JOIN user_information ui on ui.id = pal.user_info_id 
-    WHERE ui.userDid = in_userDid
+    INNER JOIN user u ON u.id = ui.userId
+    WHERE u.did = in_userDid
+        AND u.tenantId = in_tenantId
         AND (in_startDate IS NULL OR pal.created_when >= in_startDate)
 	    AND (in_endDate IS NULL OR pal.created_when <= in_endDate)
     GROUP BY YEAR(pal.created_when), MONTH(pal.created_when), pal.pii_type;

@@ -36,11 +36,16 @@ const statsRoutes = express.Router();
 
 /**
  * @swagger
- * /stats/piiRequests:
+ * /stats/piiRequests/{tenantId}:
  *  get:
  *      summary: returns the PII requests made for a user
  *      tags: [stats]
  *      parameters:
+ *      -   name: tenantId
+ *          in: path
+ *          description: tenantId
+ *          required: true
+ *          type: number
  *      -   name: did
  *          in: query
  *          description: user did
@@ -52,15 +57,20 @@ const statsRoutes = express.Router();
  *              schema:
  *                  $ref: '#/components/schemas/piiCountResponse'
  */
-statsRoutes.route("/piiRequests").get(getPIIRequestCount);
+statsRoutes.route("/piiRequests/:tenantId").get(getPIIRequestCount);
 
 /**
  * @swagger
- * /stats/trafficSource:
+ * /stats/trafficSource/{tenantId}:
  *  get:
  *      summary: returns the traffic source grouped by category
  *      tags: [stats]
  *      parameters:
+ *      -   name: tenantId
+ *          in: path
+ *          description: tenantId
+ *          required: true
+ *          type: number
  *      -   name: did
  *          in: query
  *          description: user did
@@ -72,15 +82,20 @@ statsRoutes.route("/piiRequests").get(getPIIRequestCount);
  *              schema:
  *                  $ref: '#/components/schemas/piiCountResponse'
  */
-statsRoutes.route("/trafficSource").get(getTrafficSource);
+statsRoutes.route("/trafficSource/:tenantId").get(getTrafficSource);
 
 /**
  * @swagger
- * /stats/latestPiiRequests:
+ * /stats/latestPiiRequests/{tenantId}:
  *  get:
  *      summary: returns the most recent request for a user
  *      tags: [stats]
  *      parameters:
+ *      -   name: tenantId
+ *          in: path
+ *          description: tenantId
+ *          required: true
+ *          type: number
  *      -   name: did
  *          in: query
  *          description: user did
@@ -90,16 +105,21 @@ statsRoutes.route("/trafficSource").get(getTrafficSource);
  *          200:
  *              description: ok
  */
-statsRoutes.route("/latestPiiRequests").get(getLatestPIIRequests);
+statsRoutes.route("/latestPiiRequests/:tenantId").get(getLatestPIIRequests);
 
 
 /**
  * @swagger
- * /stats/monthlyPiiRequests:
+ * /stats/monthlyPiiRequests/{tenantId}:
  *  get:
  *      summary: returns number of pii requests monthly for specified time
  *      tags: [stats]
  *      parameters:
+ *      -   name: tenantId
+ *          in: path
+ *          description: tenantId
+ *          required: true
+ *          type: number
  *      -   name: did
  *          in: query
  *          description: user did
@@ -117,7 +137,7 @@ statsRoutes.route("/latestPiiRequests").get(getLatestPIIRequests);
  *          200:
  *              description: ok
  */
-statsRoutes.route("/monthlyPiiRequests").get(getMonthlyYearlyPiiReqCounts);
+statsRoutes.route("/monthlyPiiRequests/:tenantId").get(getMonthlyYearlyPiiReqCounts);
 
 /**
  * @swagger

@@ -133,7 +133,7 @@ const userRoutes = express.Router();
  *          description: Decentralized Identity
  *          required: true
  *          type: string     
- *          example: did:example:aman   
+ *          example: did:ion:test:JSEODXKSYDUDHSSIEUJDJDI  
  *      requestBody:
  *          required: true
  *          content:

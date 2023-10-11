@@ -3,15 +3,15 @@ import Response from "../domain/response.js";
 import logger from "../util/logger.js";
 import HttpStatus from "../rest/HttpStatus.js";
 
-export const getPIIRequestCountDAL = (userDid) => {
+export const getPIIRequestCountDAL = (tenantId, userDid) => {
   return new Promise((reject, resolve) => {
     database.query(
-      "call credid_vc_provider.pr_get_pii_requests(?)",
-      [userDid],
+      "call credid_vc_provider.pr_get_pii_requests(?,?)",
+      [tenantId, userDid],
       (error, results) => {
         if (error) {
           logger.info(
-            `Error while getting pii request count userId = ${userDid} error=${error} `
+            `Error while getting pii request count tenantId=${tenantId} userId = ${userDid} error=${error} `
           );
           reject(
             new Response(
@@ -35,15 +35,15 @@ export const getPIIRequestCountDAL = (userDid) => {
   });
 };
 
-export const getTrafficSourceDal = (userDid) => {
+export const getTrafficSourceDal = (tenantId, userDid) => {
   return new Promise((reject, resolve) => {
     database.query(
-      "call credid_vc_provider.pr_get_traffic_source(?)",
-      [userDid],
+      "call credid_vc_provider.pr_get_traffic_source(?,?)",
+      [tenantId, userDid],
       (error, results) => {
         if (error) {
           logger.info(
-            `Error while getting pii request count userId = ${userDid} error=${error} `
+            `Error while getting pii request count tenantId=${tenantId} userId = ${userDid} error=${error} `
           );
           reject(
             new Response(
@@ -83,15 +83,15 @@ export const getTrafficSourceDal = (userDid) => {
   });
 };
 
-export const getLatestPIIRequestsDal = (userDid) => {
+export const getLatestPIIRequestsDal = (tenantId, userDid) => {
   return new Promise((reject, resolve) => {
     database.query(
-      "call credid_vc_provider.pr_get_latest_pii_requests(?)",
-      [userDid],
+      "call credid_vc_provider.pr_get_latest_pii_requests(?,?)",
+      [tenantId, userDid],
       (error, results) => {
         if (error) {
           logger.info(
-            `Error while getting latests pii requests for userId = ${userDid} error=${error} `
+            `Error while getting latests pii requests for tenantId=${tenantId} userId = ${userDid} error=${error} `
           );
           reject(
             new Response(
@@ -116,15 +116,16 @@ export const getLatestPIIRequestsDal = (userDid) => {
 };
 
 export const getMonthlyYearlyPiiReqCountsDal = (
+  tenantId,
   userDid,
   startDateTime,
   endDateTime
 ) => {
-  logger.info(`get user. did=${userDid} startTime=${startDateTime} endTime=${endDateTime}`);
+  logger.info(`get user. tenantId=${tenantId} did=${userDid} startTime=${startDateTime} endTime=${endDateTime}`);
   return new Promise((reject, resolve) => {
     database.query(
-      "call credid_vc_provider.pr_get_monthly_yearly_pii_request_count(?,?,?)",
-      [userDid, startDateTime || null, endDateTime || null],
+      "call credid_vc_provider.pr_get_monthly_yearly_pii_request_count(?,?,?,?)",
+      [tenantId, userDid, startDateTime || null, endDateTime || null],
       (error, results) => {
         if (error) {
           logger.info(
