@@ -120,14 +120,14 @@ export const getUserDAL = (tenantId, did, role, vcType, reason) => {
                       const pii_type = results?.[0]?.[0]?.pii_type;
                       const response = [];
 
-                      const credentialsSubject = {};
+                      const credentialSubject = {};
 
                       let issuanceDate, expirationDate;
 
                       userInfo.forEach((info) => {
                         issuanceDate = info.issueDate;
                         expirationDate = info.expiryDate;
-                        credentialsSubject.id = info.did;
+                        credentialSubject.id = info.did;
                         let value;
                         switch (pii_type) {
                           case RAW:
@@ -150,10 +150,10 @@ export const getUserDAL = (tenantId, did, role, vcType, reason) => {
                             break;
                         }
 
-                        if (credentialsSubject[pii_type]) {
-                          credentialsSubject[pii_type][info.name] = value;
+                        if (credentialSubject[pii_type]) {
+                          credentialSubject[pii_type][info.name] = value;
                         } else {
-                          credentialsSubject[pii_type] = {
+                          credentialSubject[pii_type] = {
                             [info.name]: value,
                           };
                         }
@@ -168,7 +168,7 @@ export const getUserDAL = (tenantId, did, role, vcType, reason) => {
                         issuer: "https://example.com/issuer",
                         issuanceDate,
                         expirationDate,
-                        credentialsSubject,
+                        credentialSubject,
                       });
 
                       resolve(
@@ -277,7 +277,7 @@ export const getPiiListDAL = (tenantId, did) => {
 
                  userInfo.forEach(info => {
                   const vcs = getVcHierarchy(info.credentialType, vcList);
-                  const credentialsSubject = {};
+                  const credentialSubject = {};
                   let issuanceDate, expirationDate;
                   const vc_credential = response.filter((vc) =>
                     vc?.type?.includes(info.credentialType)
@@ -287,15 +287,15 @@ export const getPiiListDAL = (tenantId, did) => {
                     //vc not added yet
                     issuanceDate = info.issueDate;
                     expirationDate = info.expiryDate;
-                    credentialsSubject.id = info.did;
-                    credentialsSubject[RAW] = { [info.name]: info.value };
-                    credentialsSubject[MASKED] = {
+                    credentialSubject.id = info.did;
+                    credentialSubject[RAW] = { [info.name]: info.value };
+                    credentialSubject[MASKED] = {
                       [info.name]: mask(info.value, info.credentialType),
                     };
-                    credentialsSubject[TOKENIZED] = {
+                    credentialSubject[TOKENIZED] = {
                       [info.name]: convertString(info.value),
                     };
-                    credentialsSubject[REDACTED] = { [info.name]: null };
+                    credentialSubject[REDACTED] = { [info.name]: null };
                     response.push({
                       context: [
                         "https://www.w3.org/2018/credentials/v1",
@@ -305,17 +305,17 @@ export const getPiiListDAL = (tenantId, did) => {
                       issuer: "https://example.com/issuer",
                       issuanceDate,
                       expirationDate,
-                      credentialsSubject,
+                      credentialSubject,
                     });
                   } else {
-                    vc_credential[0].credentialsSubject[RAW][info.name] = info.value;
-                    vc_credential[0].credentialsSubject[MASKED][info.name] = mask(
+                    vc_credential[0].credentialSubject[RAW][info.name] = info.value;
+                    vc_credential[0].credentialSubject[MASKED][info.name] = mask(
                       info.value,
                       info.credentialType
                     );
-                    vc_credential[0].credentialsSubject[TOKENIZED][info.name] =
+                    vc_credential[0].credentialSubject[TOKENIZED][info.name] =
                       convertString(info.value);
-                    vc_credential[0].credentialsSubject[REDACTED][info.name] = null;
+                    vc_credential[0].credentialSubject[REDACTED][info.name] = null;
                   }
                 });
       
